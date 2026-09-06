@@ -1,21 +1,47 @@
+import { Ionicons } from '@expo/vector-icons';
+import { ComponentProps } from 'react';
 import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 import { colors, fontSize, radii, spacing } from '../../theme';
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 
 type Props = TextInputProps & {
   label: string;
   error?: string | null;
+  /** Leading glyph inside the field. Omit for a plain input. */
+  icon?: IconName;
+  /** `pill` is the rounded, filled treatment used by the auth screens. */
+  variant?: 'default' | 'pill';
 };
 
-export function TextField({ label, error, style, ...inputProps }: Props) {
+export function TextField({ label, error, icon, variant = 'default', style, ...inputProps }: Props) {
+  const isPill = variant === 'pill';
+
   return (
     <View style={styles.wrapper}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        placeholderTextColor={colors.textMuted}
-        style={[styles.input, Boolean(error) && styles.inputError, style]}
-        {...inputProps}
-      />
+      <View
+        style={[
+          styles.field,
+          isPill && styles.fieldPill,
+          Boolean(error) && styles.fieldError,
+        ]}
+      >
+        {icon ? (
+          <Ionicons
+            name={icon}
+            size={18}
+            color={colors.textMuted}
+            style={styles.icon}
+          />
+        ) : null}
+        <TextInput
+          accessibilityLabel={label}
+          placeholderTextColor={colors.textMuted}
+          style={[styles.input, style]}
+          {...inputProps}
+        />
+      </View>
       {Boolean(error) && <Text style={styles.error}>{error}</Text>}
     </View>
   );
@@ -29,18 +55,30 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: spacing.xs,
   },
-  input: {
+  field: {
+    flexDirection: 'row',
+    alignItems: 'center',
     minHeight: 48,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
+    backgroundColor: colors.background,
+  },
+  fieldPill: {
+    minHeight: 54,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface,
+  },
+  fieldError: { borderColor: colors.danger },
+  icon: { marginRight: spacing.sm },
+  input: {
+    flex: 1,
     paddingVertical: spacing.sm,
     fontSize: fontSize.md,
     color: colors.text,
-    backgroundColor: colors.background,
   },
-  inputError: { borderColor: colors.danger },
   error: {
     marginTop: spacing.xs,
     color: colors.danger,

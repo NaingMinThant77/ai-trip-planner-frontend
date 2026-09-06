@@ -15,6 +15,20 @@ export const colors = {
   dangerSoft: '#FEE2E2',
   success: '#059669',
   warning: '#D97706',
+
+  // Brand teal. Currently used by the auth + onboarding screens only; the rest of the app
+  // is still on `primary` blue and gets migrated screen by screen.
+  brand: '#0E8A7D',
+  brandDark: '#0B5F58',
+  brandSoft: '#D7EFEB',
+  googleBlue: '#4285F4',
+  overlay: 'rgba(15, 23, 42, 0.28)',
+} as const;
+
+/** Multi-stop gradients. Tuples so `LinearGradient`'s readonly string[] prop is satisfied. */
+export const gradients = {
+  brand: ['#0F9C86', '#0B6A62'],
+  photoScrim: ['rgba(0,0,0,0)', 'rgba(0,0,0,0.35)'],
 } as const;
 
 export const spacing = {
@@ -30,6 +44,8 @@ export const radii = {
   sm: 6,
   md: 10,
   lg: 16,
+  xl: 22,
+  xxl: 28,
   pill: 999,
 } as const;
 
@@ -39,6 +55,7 @@ export const fontSize = {
   md: 16,
   lg: 20,
   xl: 26,
+  xxl: 30,
 } as const;
 
 export const timeOfDayLabel = {

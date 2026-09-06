@@ -1,12 +1,34 @@
 import { useQueryClient } from '@tanstack/react-query';
+import * as Linking from 'expo-linking';
 import * as SecureStore from 'expo-secure-store';
+import * as WebBrowser from 'expo-web-browser';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as authApi from '../api/auth';
 import { setAuthToken } from '../api/client';
 import { User } from '../types/api';
 
+// Closes the popup the web build leaves behind after Google redirects back.
+WebBrowser.maybeCompleteAuthSession();
+
 const TOKEN_KEY = 'atp.accessToken';
 const ONBOARDED_KEY = 'atp.hasOnboarded';
+
+/** Where the backend hands the session back to. Expo Go resolves this to an `exp://` URL. */
+const GOOGLE_REDIRECT_PATH = 'auth/google';
+
+/** Reasons the user chose to stop — these end the attempt without showing an error. */
+const SILENT_GOOGLE_ERRORS = ['access_denied', 'user_cancelled'];
+
+const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
+  google_not_configured: 'Google sign-in is not set up on the server yet.',
+  missing_code: 'Google sign-in did not complete. Please try again.',
+};
+
+/** `queryParams` values can be arrays when a key repeats; only a single value is meaningful. */
+function readParam(value: string | string[] | undefined): string | null {
+  if (typeof value === 'string' && value.length > 0) return value;
+  return null;
+}
 
 type AuthState = {
   user: User | null;
@@ -15,6 +37,8 @@ type AuthState = {
   hasOnboarded: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
+  /** Opens Google in a system browser. Resolves without a session if the user backs out. */
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
 };
@@ -109,6 +133,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [applySession],
   );
 
+  const signInWithGoogle = useCallback(async (): Promise<void> => {
+    const redirectUri = Linking.createURL(GOOGLE_REDIRECT_PATH);
+    const result = await WebBrowser.openAuthSessionAsync(
+      authApi.googleStartUrl(redirectUri),
+      redirectUri,
+    );
+
+    // The user swiped the browser away or hit cancel — not an error worth reporting.
+    if (result.type !== 'success') return;
+
+    const { queryParams } = Linking.parse(result.url);
+    const failure = readParam(queryParams?.error);
+
+    if (failure) {
+      if (SILENT_GOOGLE_ERRORS.includes(failure)) return;
+      throw new Error(GOOGLE_ERROR_MESSAGES[failure] ?? 'Google sign-in failed. Please try again.');
+    }
+
+    const accessToken = readParam(queryParams?.token);
+    if (!accessToken) {
+      throw new Error('Google sign-in did not return a session. Please try again.');
+    }
+
+    // The deep link carries only the token, so the profile is fetched with it before the
+    // session is committed — that also proves the token works.
+    setAuthToken(accessToken);
+    try {
+      const me = await authApi.fetchMe();
+      await writeSecure(TOKEN_KEY, accessToken);
+      setUser(me);
+    } catch (caught) {
+      setAuthToken(null);
+      throw caught;
+    }
+  }, []);
+
   const signOut = useCallback(async (): Promise<void> => {
     setAuthToken(null);
     await writeSecure(TOKEN_KEY, null);
@@ -123,8 +183,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AuthState>(
-    () => ({ user, isRestoring, hasOnboarded, signIn, signUp, signOut, completeOnboarding }),
-    [user, isRestoring, hasOnboarded, signIn, signUp, signOut, completeOnboarding],
+    () => ({
+      user,
+      isRestoring,
+      hasOnboarded,
+      signIn,
+      signUp,
+      signInWithGoogle,
+      signOut,
+      completeOnboarding,
+    }),
+    [
+      user,
+      isRestoring,
+      hasOnboarded,
+      signIn,
+      signUp,
+      signInWithGoogle,
+      signOut,
+      completeOnboarding,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,5 +1,5 @@
 import { AuthResponse, User } from '../types/api';
-import { api } from './client';
+import { API_BASE_URL, api } from './client';
 
 export async function register(input: {
   email: string;
@@ -18,4 +18,13 @@ export async function login(input: { email: string; password: string }): Promise
 export async function fetchMe(): Promise<User> {
   const { data } = await api.get<User>('/auth/me');
   return data;
+}
+
+/**
+ * Not an axios call — this URL is handed to a system browser so the user can reach Google's
+ * consent screen. The backend does the code exchange and redirects back to `redirectUri`
+ * with either `token` or `error`.
+ */
+export function googleStartUrl(redirectUri: string): string {
+  return `${API_BASE_URL}/auth/google/start?redirect=${encodeURIComponent(redirectUri)}`;
 }
