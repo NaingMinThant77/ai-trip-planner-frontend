@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ComponentProps } from 'react';
-import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
+import { ComponentProps, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 import { colors, fontSize, radii, spacing } from '../../theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -14,33 +14,54 @@ type Props = TextInputProps & {
   variant?: 'default' | 'pill';
 };
 
-export function TextField({ label, error, icon, variant = 'default', style, ...inputProps }: Props) {
+export function TextField({
+  label,
+  error,
+  icon,
+  variant = 'default',
+  style,
+  secureTextEntry,
+  ...inputProps
+}: Props) {
   const isPill = variant === 'pill';
+  const [isRevealed, setIsRevealed] = useState(false);
+
+  // Every password field gets the eye, because the toggle lives here rather than at the call
+  // sites. Masking resumes as soon as `secureTextEntry` is no longer requested.
+  const isSecret = Boolean(secureTextEntry);
+  const isMasked = isSecret && !isRevealed;
 
   return (
     <View style={styles.wrapper}>
       <Text style={styles.label}>{label}</Text>
-      <View
-        style={[
-          styles.field,
-          isPill && styles.fieldPill,
-          Boolean(error) && styles.fieldError,
-        ]}
-      >
+      <View style={[styles.field, isPill && styles.fieldPill, Boolean(error) && styles.fieldError]}>
         {icon ? (
-          <Ionicons
-            name={icon}
-            size={18}
-            color={colors.textMuted}
-            style={styles.icon}
-          />
+          <Ionicons name={icon} size={18} color={colors.textMuted} style={styles.icon} />
         ) : null}
         <TextInput
           accessibilityLabel={label}
           placeholderTextColor={colors.textMuted}
           style={[styles.input, style]}
+          secureTextEntry={isMasked}
           {...inputProps}
         />
+        {isSecret ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={isMasked ? `Show ${label}` : `Hide ${label}`}
+            accessibilityState={{ selected: isRevealed }}
+            onPress={() => setIsRevealed((current) => !current)}
+            // Enlarged tap area: the glyph alone is well under the 44pt minimum.
+            hitSlop={spacing.sm}
+            style={({ pressed }) => [styles.reveal, pressed && styles.revealPressed]}
+          >
+            <Ionicons
+              name={isMasked ? 'eye-outline' : 'eye-off-outline'}
+              size={19}
+              color={colors.textMuted}
+            />
+          </Pressable>
+        ) : null}
       </View>
       {Boolean(error) && <Text style={styles.error}>{error}</Text>}
     </View>
@@ -79,6 +100,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.text,
   },
+  reveal: { paddingLeft: spacing.sm },
+  revealPressed: { opacity: 0.5 },
   error: {
     marginTop: spacing.xs,
     color: colors.danger,

@@ -39,6 +39,11 @@ type AuthState = {
   signUp: (name: string, email: string, password: string) => Promise<void>;
   /** Opens Google in a system browser. Resolves without a session if the user backs out. */
   signInWithGoogle: () => Promise<void>;
+  /**
+   * Re-reads `/auth/me` into the session. Call after changing the name, email or avatar —
+   * without it the header keeps showing what was true when the app started.
+   */
+  refreshUser: () => Promise<void>;
   signOut: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
 };
@@ -169,6 +174,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshUser = useCallback(async (): Promise<void> => {
+    // Swallowed on purpose: this only refreshes what is displayed. A failure here must not
+    // turn a successful save into an error, and the next cold start re-reads it anyway.
+    try {
+      setUser(await authApi.fetchMe());
+    } catch {
+      // Left as-is.
+    }
+  }, []);
+
   const signOut = useCallback(async (): Promise<void> => {
     setAuthToken(null);
     await writeSecure(TOKEN_KEY, null);
@@ -190,6 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signUp,
       signInWithGoogle,
+      refreshUser,
       signOut,
       completeOnboarding,
     }),
@@ -200,6 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signUp,
       signInWithGoogle,
+      refreshUser,
       signOut,
       completeOnboarding,
     ],

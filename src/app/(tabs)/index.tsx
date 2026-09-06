@@ -7,7 +7,7 @@ import { ErrorState, LoadingState } from '../../components/ui/screen-state';
 import { useAuth } from '../../context/auth';
 import { useSuggestions } from '../../hooks/use-explore';
 import { useTrips } from '../../hooks/use-trips';
-import { colors, fontSize, radii, spacing } from '../../theme';
+import { colors, fontSize, layout, radii, spacing } from '../../theme';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -119,7 +119,7 @@ function ActionTile({
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  content: { padding: spacing.lg, paddingBottom: layout.tabBarClearance },
   greeting: { fontSize: fontSize.xl, fontWeight: '700', color: colors.text },
   subtitle: { fontSize: fontSize.sm, color: colors.textMuted, marginTop: spacing.xs },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },

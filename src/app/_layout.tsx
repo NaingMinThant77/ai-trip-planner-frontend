@@ -93,6 +93,8 @@ function RootNavigator() {
       <Stack.Screen name="explore" options={{ title: 'Explore' }} />
       <Stack.Screen name="agent" options={{ title: 'Trip assistant' }} />
       <Stack.Screen name="trip/[id]" options={{ title: 'Trip' }} />
+      <Stack.Screen name="travel-profile" options={{ title: 'Travel profile' }} />
+      <Stack.Screen name="account" options={{ title: 'Account' }} />
     </Stack>
   );
 }

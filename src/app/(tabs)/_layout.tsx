@@ -1,14 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { colors } from '../../theme';
+import { ComponentProps } from 'react';
+import { ColorValue, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, layout, radii, spacing } from '../../theme';
 
+type IconName = ComponentProps<typeof Ionicons>['name'];
+
+/**
+ * The bar floats over the content, so every scrolling screen in this group reserves
+ * `layout.tabBarClearance` at the bottom. A new tab screen must do the same.
+ */
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.brandDark,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
+        tabBarStyle: [styles.bar, { bottom: insets.bottom + spacing.sm }],
+        tabBarItemStyle: styles.item,
+        tabBarLabelStyle: styles.label,
         headerStyle: { backgroundColor: colors.background },
         headerTitleStyle: { fontWeight: '700', color: colors.text },
         sceneStyle: { backgroundColor: colors.surface },
@@ -18,23 +31,82 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} />,
+          tabBarIcon: renderIcon('home-outline', 'home'),
         }}
       />
       <Tabs.Screen
         name="trips"
         options={{
-          title: 'My Trips',
-          tabBarIcon: ({ color, size }) => <Ionicons name="map" color={color} size={size} />,
+          title: 'My trips',
+          tabBarIcon: renderIcon('briefcase-outline', 'briefcase'),
+        }}
+      />
+      <Tabs.Screen
+        name="family"
+        options={{
+          title: 'Family',
+          headerShown: false,
+          tabBarIcon: renderIcon('people-outline', 'people'),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
+          // The screen paints its own teal header, so the stock one would double up.
+          headerShown: false,
+          tabBarIcon: renderIcon('person-outline', 'person'),
         }}
       />
     </Tabs>
   );
 }
+
+/**
+ * The active tab is a filled teal disc with a white glyph; inactive tabs are a bare outline.
+ * `tabBarIcon` is called on every render, so this returns the render function rather than
+ * building one inline per screen.
+ */
+function renderIcon(idle: IconName, active: IconName) {
+  return function TabIcon({ focused, color }: { focused: boolean; color: ColorValue }) {
+    return (
+      <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+        <Ionicons
+          name={focused ? active : idle}
+          size={focused ? 19 : 21}
+          color={focused ? colors.textInverse : color}
+        />
+      </View>
+    );
+  };
+}
+
+const styles = StyleSheet.create({
+  bar: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    height: layout.tabBarHeight,
+    borderRadius: radii.xxl,
+    backgroundColor: colors.background,
+    borderTopWidth: 0,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    // Lifts the pill off the content behind it. `elevation` is the Android half.
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 12,
+  },
+  item: { borderRadius: radii.xxl },
+  label: { fontSize: 11, fontWeight: '600' },
+  iconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapActive: { backgroundColor: colors.brand },
+});

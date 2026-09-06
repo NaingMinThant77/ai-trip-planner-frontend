@@ -47,7 +47,8 @@
     "ios": "expo start --ios --go",
     "web": "expo start --web",
     "lint": "expo lint",
-    "start:dev-build": "expo start --dev-client"
+    "start:dev-build": "expo start --dev-client",
+    "oauth:bridge": "node ./scripts/oauth-bridge.mjs"
   },
   "private": true
 }

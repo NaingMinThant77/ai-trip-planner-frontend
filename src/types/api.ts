@@ -27,12 +27,26 @@ export type User = {
   id: string;
   email: string;
   name: string;
+  /** Cloudinary URL. Null means render initials instead. */
+  avatarUrl: string | null;
   createdAt: string;
 };
 
 export type UserProfile = User & {
   homeCity: string | null;
   interests: string[];
+  /** Minted by the server on first profile read, then stable. Shared so family can add you. */
+  inviteCode: string;
+};
+
+/** Someone the signed-in user added by invite code. One-directional — see decision #19. */
+export type FamilyMember = {
+  id: string;
+  /** The added account's user id, not the row id. */
+  userId: string;
+  name: string;
+  email: string;
+  addedAt: string;
 };
 
 export type AuthResponse = {

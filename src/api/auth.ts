@@ -15,6 +15,13 @@ export async function login(input: { email: string; password: string }): Promise
   return data;
 }
 
+export async function changePassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<void> {
+  await api.patch('/auth/password', input);
+}
+
 export async function fetchMe(): Promise<User> {
   const { data } = await api.get<User>('/auth/me');
   return data;

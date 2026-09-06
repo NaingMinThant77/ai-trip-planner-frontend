@@ -5,7 +5,7 @@ import { TripCard } from '../../components/trip-card';
 import { Button } from '../../components/ui/button';
 import { EmptyState, ErrorState, LoadingState } from '../../components/ui/screen-state';
 import { useTrips } from '../../hooks/use-trips';
-import { spacing } from '../../theme';
+import { layout, spacing } from '../../theme';
 
 export default function MyTripsScreen() {
   const router = useRouter();
@@ -55,6 +55,6 @@ export default function MyTripsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  list: { padding: spacing.lg },
+  list: { padding: spacing.lg, paddingBottom: layout.tabBarClearance },
   footer: { padding: spacing.lg, paddingTop: 0 },
 });

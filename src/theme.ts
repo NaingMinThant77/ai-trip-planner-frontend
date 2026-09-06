@@ -22,6 +22,12 @@ export const colors = {
   brandDark: '#0B5F58',
   brandSoft: '#D7EFEB',
   googleBlue: '#4285F4',
+
+  // Soft tinted grounds for icon tiles and highlight cards on the redesigned screens.
+  accent: '#E07A3F',
+  accentSoft: '#FDEEE2',
+  infoSoft: '#E4EDFB',
+  info: '#3B82F6',
   overlay: 'rgba(15, 23, 42, 0.28)',
 } as const;
 
@@ -47,6 +53,16 @@ export const radii = {
   xl: 22,
   xxl: 28,
   pill: 999,
+} as const;
+
+/**
+ * The tab bar floats over the content, so a scrolling screen inside `(tabs)` has to reserve
+ * room for it or its last row sits under the bar. Use `layout.tabBarClearance` as
+ * `paddingBottom` on those scroll containers.
+ */
+export const layout = {
+  tabBarHeight: 66,
+  tabBarClearance: 108,
 } as const;
 
 export const fontSize = {
