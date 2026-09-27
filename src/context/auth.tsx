@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as authApi from '../api/auth';
 import { setAuthToken } from '../api/client';
+import { connectSocket, disconnectSocket } from '../lib/socket';
 import { User } from '../types/api';
 
 // Closes the popup the web build leaves behind after Google redirects back.
@@ -97,7 +98,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           // Confirms the token is still valid before trusting it.
           const me = await authApi.fetchMe();
-          if (!cancelled) setUser(me);
+          if (!cancelled) {
+            setUser(me);
+            connectSocket(token);
+          }
         } catch {
           setAuthToken(null);
           await writeSecure(TOKEN_KEY, null);
@@ -118,6 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthToken(accessToken);
       await writeSecure(TOKEN_KEY, accessToken);
       setUser(nextUser);
+      connectSocket(accessToken);
     },
     [],
   );
@@ -168,6 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const me = await authApi.fetchMe();
       await writeSecure(TOKEN_KEY, accessToken);
       setUser(me);
+      connectSocket(accessToken);
     } catch (caught) {
       setAuthToken(null);
       throw caught;
@@ -186,6 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async (): Promise<void> => {
     setAuthToken(null);
+    disconnectSocket();
     await writeSecure(TOKEN_KEY, null);
     setUser(null);
     // Otherwise the next person to sign in briefly sees the previous user's trips.

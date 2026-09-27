@@ -1,163 +1,347 @@
-import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ComponentProps, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ApiError } from '../../api/client';
 import {
-  useBookingSearch,
+  useCreateBooking,
   useDeleteBooking,
-  useSaveBooking,
   useSavedBookings,
+  useUpdateBooking,
 } from '../../hooks/use-bookings';
-import { colors, fontSize, radii, spacing } from '../../theme';
-import { BOOKING_KINDS, BookingKind, BookingOffer } from '../../types/api';
-import { Button } from '../ui/button';
+import {
+  colors,
+  fontSize,
+  jellyColors,
+  jellyGradients,
+  jellyShadow,
+  jellyShadowSmall,
+  radii,
+  spacing,
+} from '../../theme';
+import { BookingKind, SavedBooking, SaveBookingInput, ViewerRole } from '../../types/api';
+import { BookingFormModal } from '../booking-form-modal';
 import { Chip } from '../ui/chip';
 
-const KIND_LABEL: Record<BookingKind, string> = {
-  hotel: 'Hotels',
-  car: 'Car hire',
-  flight: 'Flights',
+type IconName = ComponentProps<typeof Ionicons>['name'];
+
+/** Mockup order is Flight / Car / Hotels / Extra — not the `BOOKING_KINDS` (hotel-first) order. */
+const KIND_ORDER: BookingKind[] = ['flight', 'car', 'hotel', 'extra'];
+
+const KIND_META: Record<
+  BookingKind,
+  {
+    label: string;
+    icon: IconName;
+    color: string;
+    soft: string;
+    gradient: readonly [string, string];
+    emptyTitle: string;
+    emptyBody: string;
+  }
+> = {
+  flight: {
+    label: 'Flight',
+    icon: 'airplane',
+    color: jellyColors.sky,
+    soft: jellyColors.skySoft,
+    gradient: jellyGradients.sky,
+    emptyTitle: 'No flights yet',
+    emptyBody: 'Add your airline, flight number and times so they travel with the trip.',
+  },
+  car: {
+    label: 'Car',
+    icon: 'car-sport',
+    color: jellyColors.sun,
+    soft: jellyColors.sunSoft,
+    gradient: jellyGradients.sun,
+    emptyTitle: 'No car hire yet',
+    emptyBody: 'Add a rental so pickup and drop-off details are always at hand.',
+  },
+  hotel: {
+    label: 'Hotels',
+    icon: 'bed',
+    color: jellyColors.grape,
+    soft: jellyColors.grapeSoft,
+    // `jellyGradients` has no grape entry — mint is the pragmatic stand-in for hotel's CTA/header.
+    gradient: jellyGradients.mint,
+    emptyTitle: 'No hotels yet',
+    emptyBody: 'Add where you are staying, with check-in and check-out dates.',
+  },
+  extra: {
+    label: 'Extra',
+    icon: 'ticket',
+    color: jellyColors.berry,
+    soft: jellyColors.berrySoft,
+    gradient: jellyGradients.berry,
+    emptyTitle: 'No extras yet',
+    emptyBody: 'Tickets, tours or anything else worth keeping on hand.',
+  },
 };
 
-export function BookingsSection({ tripId }: { tripId: string }) {
-  const [kind, setKind] = useState<BookingKind>('hotel');
+type FormState = { mode: 'create' } | { mode: 'edit'; booking: SavedBooking };
 
-  const search = useBookingSearch(tripId, kind, true);
+export function BookingsSection({
+  tripId,
+  viewerRole,
+}: {
+  tripId: string;
+  viewerRole: ViewerRole;
+}) {
+  const canEdit = viewerRole !== 'viewer';
+  const [kind, setKind] = useState<BookingKind>('flight');
+  const [formState, setFormState] = useState<FormState | null>(null);
+
   const saved = useSavedBookings(tripId);
-  const saveBooking = useSaveBooking(tripId);
+  const createBooking = useCreateBooking(tripId);
+  const updateBooking = useUpdateBooking(tripId);
   const deleteBooking = useDeleteBooking(tripId);
 
-  function handleSave(offer: BookingOffer): void {
-    saveBooking.mutate(offer, {
-      onError: (error) =>
-        Alert.alert(
-          'Could not save',
-          error instanceof ApiError ? error.message : 'Please try again.',
-        ),
-    });
+  const meta = KIND_META[kind];
+  const bookings = (saved.data ?? []).filter((booking) => booking.kind === kind);
+  const isSaving = createBooking.isPending || updateBooking.isPending;
+
+  function handleSubmit(input: SaveBookingInput): void {
+    if (formState?.mode === 'edit') {
+      updateBooking.mutate(
+        { bookingId: formState.booking.id, booking: input },
+        {
+          onSuccess: () => setFormState(null),
+          onError: (error) =>
+            Alert.alert(
+              'Could not save',
+              error instanceof ApiError ? error.message : 'Please try again.',
+            ),
+        },
+      );
+    } else {
+      createBooking.mutate(input, {
+        onSuccess: () => setFormState(null),
+        onError: (error) =>
+          Alert.alert(
+            'Could not save',
+            error instanceof ApiError ? error.message : 'Please try again.',
+          ),
+      });
+    }
+  }
+
+  function confirmDelete(booking: SavedBooking): void {
+    Alert.alert('Delete booking', `Remove "${booking.title}" from this trip?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () =>
+          deleteBooking.mutate(booking.id, {
+            onError: (error) =>
+              Alert.alert(
+                'Could not delete',
+                error instanceof ApiError ? error.message : 'Please try again.',
+              ),
+          }),
+      },
+    ]);
   }
 
   return (
     <View>
-      {/* This disclaimer is a product requirement, not decoration — see 01-product.md. */}
-      <View style={styles.disclaimer}>
-        <Text style={styles.disclaimerTitle}>Reference information only</Text>
-        <Text style={styles.disclaimerBody}>
-          These are indicative examples to help you plan and budget. Nothing here is live
-          availability, a quote, or a reservation. Book with the supplier directly.
-        </Text>
-      </View>
-
       <View style={styles.tabs}>
-        {BOOKING_KINDS.map((option) => (
+        {KIND_ORDER.map((option) => (
           <Chip
             key={option}
-            label={KIND_LABEL[option]}
+            label={KIND_META[option].label}
             isSelected={kind === option}
             onPress={() => setKind(option)}
           />
         ))}
       </View>
 
-      {saved.data && saved.data.length > 0 ? (
-        <View style={styles.savedBlock}>
-          <Text style={styles.sectionTitle}>Saved for this trip</Text>
-          {saved.data.map((booking) => (
-            <View key={booking.id} style={styles.card}>
+      {bookings.length === 0 ? (
+        <View style={[styles.emptyCard, jellyShadow, { backgroundColor: meta.soft }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: meta.color }]}>
+            <Ionicons name={meta.icon} size={26} color={colors.textInverse} />
+          </View>
+          <Text style={styles.emptyTitle}>{meta.emptyTitle}</Text>
+          <Text style={styles.emptyBody}>{meta.emptyBody}</Text>
+        </View>
+      ) : (
+        <View style={styles.list}>
+          {bookings.map((booking) => (
+            <View key={booking.id} style={[styles.card, jellyShadow]}>
               <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{booking.title}</Text>
+                <View style={[styles.cardIcon, { backgroundColor: meta.color }]}>
+                  <Ionicons name={meta.icon} size={18} color={colors.textInverse} />
+                </View>
+                <View style={styles.cardHeaderText}>
+                  <Text style={styles.cardTitle}>{booking.title}</Text>
+                  {booking.provider ? (
+                    <Text style={styles.cardProvider}>{booking.provider}</Text>
+                  ) : null}
+                </View>
                 {booking.priceText ? (
-                  <Text style={styles.price}>{booking.priceText}</Text>
+                  <Text style={[styles.price, { color: meta.color }]}>{booking.priceText}</Text>
                 ) : null}
               </View>
+
+              {booking.location ? (
+                <View style={styles.metaRow}>
+                  <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+                  <Text style={styles.metaText}>{booking.location}</Text>
+                </View>
+              ) : null}
+
+              {booking.startsAt || booking.endsAt ? (
+                <View style={styles.metaRow}>
+                  <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+                  <Text style={styles.metaText}>
+                    {[booking.startsAt, booking.endsAt].filter(Boolean).join('   →   ')}
+                  </Text>
+                </View>
+              ) : null}
+
               {booking.detail ? <Text style={styles.detail}>{booking.detail}</Text> : null}
-              <Button
-                label="Remove"
-                variant="secondary"
-                onPress={() => deleteBooking.mutate(booking.id)}
-                style={styles.cardAction}
-              />
+
+              {canEdit ? (
+                <View style={styles.cardActions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Edit booking"
+                    onPress={() => setFormState({ mode: 'edit', booking })}
+                    style={[styles.iconButton, jellyShadowSmall, { backgroundColor: meta.soft }]}
+                  >
+                    <Ionicons name="pencil" size={15} color={meta.color} />
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Delete booking"
+                    onPress={() => confirmDelete(booking)}
+                    style={[styles.iconButton, jellyShadowSmall, styles.deleteButton]}
+                  >
+                    <Ionicons name="trash" size={15} color={colors.danger} />
+                  </Pressable>
+                </View>
+              ) : null}
             </View>
           ))}
         </View>
+      )}
+
+      {canEdit ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add booking"
+          onPress={() => setFormState({ mode: 'create' })}
+          style={({ pressed }) => [
+            styles.addButton,
+            jellyShadow,
+            pressed && styles.addButtonPressed,
+          ]}
+        >
+          <LinearGradient
+            colors={meta.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.addButtonFill}
+          >
+            <Ionicons name="add-circle" size={20} color={colors.textInverse} />
+            <Text style={styles.addButtonLabel}>Add booking</Text>
+          </LinearGradient>
+        </Pressable>
       ) : null}
 
-      <Text style={styles.sectionTitle}>{KIND_LABEL[kind]}</Text>
-
-      {search.isPending ? (
-        <Text style={styles.hint}>Looking up options…</Text>
-      ) : search.isError ? (
-        <Text style={styles.hint}>
-          {search.error instanceof ApiError ? search.error.message : 'Could not load options.'}
-        </Text>
-      ) : search.data.length === 0 ? (
-        <Text style={styles.hint}>No options to show for this trip.</Text>
-      ) : (
-        search.data.map((offer) => (
-          <View key={offer.externalId} style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{offer.title}</Text>
-              {offer.priceText ? <Text style={styles.price}>{offer.priceText}</Text> : null}
-            </View>
-
-            <Text style={styles.detail}>{offer.detail}</Text>
-
-            <View style={styles.cardFooter}>
-              <Text style={styles.provider}>
-                {offer.provider}
-                {offer.isIndicative ? ' · indicative' : ''}
-              </Text>
-            </View>
-
-            <Button
-              label="Save to trip"
-              variant="secondary"
-              onPress={() => handleSave(offer)}
-              isLoading={saveBooking.isPending && saveBooking.variables?.externalId === offer.externalId}
-              style={styles.cardAction}
-            />
-          </View>
-        ))
-      )}
+      <BookingFormModal
+        visible={formState !== null}
+        kind={formState?.mode === 'edit' ? formState.booking.kind : kind}
+        mode={formState?.mode ?? 'create'}
+        initialValue={formState?.mode === 'edit' ? formState.booking : undefined}
+        onSubmit={handleSubmit}
+        onClose={() => setFormState(null)}
+        isPending={isSaving}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  disclaimer: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  disclaimerTitle: { fontSize: fontSize.sm, fontWeight: '700', color: colors.primaryDark },
-  disclaimerBody: {
-    fontSize: fontSize.xs,
-    color: colors.primaryDark,
-    lineHeight: 18,
-    marginTop: spacing.xs,
-  },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md },
-  savedBlock: { marginBottom: spacing.lg },
-  sectionTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
+  list: { marginBottom: spacing.lg },
   card: {
     backgroundColor: colors.background,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
     marginBottom: spacing.md,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  cardTitle: { flex: 1, fontSize: fontSize.sm, fontWeight: '600', color: colors.text },
-  price: { fontSize: fontSize.xs, fontWeight: '700', color: colors.primaryDark },
-  detail: { fontSize: fontSize.xs, color: colors.textMuted, lineHeight: 18, marginTop: spacing.xs },
-  cardFooter: { marginTop: spacing.sm },
-  provider: { fontSize: fontSize.xs, color: colors.textMuted },
-  cardAction: { marginTop: spacing.md },
-  hint: { fontSize: fontSize.sm, color: colors.textMuted },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  cardIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardHeaderText: { flex: 1 },
+  cardTitle: { fontSize: fontSize.md, fontWeight: '700', color: colors.text },
+  cardProvider: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 2 },
+  price: { fontSize: fontSize.sm, fontWeight: '800' },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  metaText: { fontSize: fontSize.xs, color: colors.textMuted, flexShrink: 1 },
+  detail: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    lineHeight: 18,
+    marginTop: spacing.sm,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  iconButton: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButton: { backgroundColor: colors.dangerSoft },
+  emptyCard: {
+    borderRadius: radii.xxl,
+    padding: spacing.xl,
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  emptyTitle: { fontSize: fontSize.md, fontWeight: '700', color: colors.text },
+  emptyBody: {
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+    lineHeight: 18,
+  },
+  addButton: { borderRadius: radii.pill, overflow: 'hidden' },
+  addButtonPressed: { opacity: 0.9 },
+  addButtonFill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    minHeight: 54,
+    paddingHorizontal: spacing.lg,
+  },
+  addButtonLabel: { fontSize: fontSize.md, fontWeight: '800', color: colors.textInverse },
 });

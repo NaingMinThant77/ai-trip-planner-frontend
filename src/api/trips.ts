@@ -1,8 +1,8 @@
-import { CreateTripInput, Trip, TripDetail } from '../types/api';
+import { CreateTripInput, Trip, TripDetail, TripListItem } from '../types/api';
 import { api } from './client';
 
-export async function listTrips(): Promise<Trip[]> {
-  const { data } = await api.get<Trip[]>('/trips');
+export async function listTrips(): Promise<TripListItem[]> {
+  const { data } = await api.get<TripListItem[]>('/trips');
   return data;
 }
 

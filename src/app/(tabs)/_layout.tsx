@@ -22,6 +22,8 @@ export default function TabsLayout() {
         tabBarStyle: [styles.bar, { bottom: insets.bottom + spacing.sm }],
         tabBarItemStyle: styles.item,
         tabBarLabelStyle: styles.label,
+        // Every tab screen paints its own header, so the stock one would double up.
+        headerShown: false,
         headerStyle: { backgroundColor: colors.background },
         headerTitleStyle: { fontWeight: '700', color: colors.text },
         sceneStyle: { backgroundColor: colors.surface },
@@ -42,10 +44,16 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="shared"
+        options={{
+          title: 'Shared',
+          tabBarIcon: renderIcon('people-circle-outline', 'people-circle'),
+        }}
+      />
+      <Tabs.Screen
         name="family"
         options={{
           title: 'Family',
-          headerShown: false,
           tabBarIcon: renderIcon('people-outline', 'people'),
         }}
       />
@@ -53,8 +61,6 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          // The screen paints its own teal header, so the stock one would double up.
-          headerShown: false,
           tabBarIcon: renderIcon('person-outline', 'person'),
         }}
       />

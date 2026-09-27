@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { ActivityIndicator, ColorValue, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import { colors, fontSize, gradients, radii, spacing } from '../../theme';
 
 type Props = {
@@ -8,6 +8,11 @@ type Props = {
   isLoading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  /**
+   * Overrides the default brand teal gradient — e.g. one of `jellyGradients` on the Trip
+   * Detail redesign. Defaults to `gradients.brand` so every existing call site is unaffected.
+   */
+  gradientColors?: readonly [ColorValue, ColorValue, ...ColorValue[]];
 };
 
 /** The brand call-to-action. Solid `Button` stays the default everywhere else. */
@@ -17,6 +22,7 @@ export function GradientButton({
   isLoading = false,
   disabled = false,
   style,
+  gradientColors,
 }: Props) {
   const isDisabled = disabled || isLoading;
 
@@ -34,7 +40,7 @@ export function GradientButton({
       ]}
     >
       <LinearGradient
-        colors={gradients.brand}
+        colors={gradientColors ?? gradients.brand}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.fill}

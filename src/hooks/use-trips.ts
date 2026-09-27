@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as itineraryApi from '../api/itinerary';
 import * as tripsApi from '../api/trips';
-import { CreateTripInput, Trip, TripDetail } from '../types/api';
+import { CreateActivityInput, CreateTripInput, Trip, TripDetail, UpdateActivityInput } from '../types/api';
 
 export const tripKeys = {
   all: ['trips'] as const,
@@ -63,6 +63,41 @@ export function useRegenerateDay(tripId: string) {
   return useMutation({
     mutationFn: (input: { dayNumber: number; feedback?: string }) =>
       itineraryApi.regenerateDay(tripId, input.dayNumber, input.feedback),
+    onSuccess: (trip: TripDetail) => {
+      queryClient.setQueryData(tripKeys.detail(tripId), trip);
+    },
+  });
+}
+
+export function useAddActivity(tripId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { dayNumber: number; activity: CreateActivityInput }) =>
+      itineraryApi.addActivity(tripId, input.dayNumber, input.activity),
+    onSuccess: (trip: TripDetail) => {
+      queryClient.setQueryData(tripKeys.detail(tripId), trip);
+    },
+  });
+}
+
+export function useUpdateActivity(tripId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { activityId: string; activity: UpdateActivityInput }) =>
+      itineraryApi.updateActivity(tripId, input.activityId, input.activity),
+    onSuccess: (trip: TripDetail) => {
+      queryClient.setQueryData(tripKeys.detail(tripId), trip);
+    },
+  });
+}
+
+export function useDeleteActivity(tripId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (activityId: string) => itineraryApi.deleteActivity(tripId, activityId),
     onSuccess: (trip: TripDetail) => {
       queryClient.setQueryData(tripKeys.detail(tripId), trip);
     },

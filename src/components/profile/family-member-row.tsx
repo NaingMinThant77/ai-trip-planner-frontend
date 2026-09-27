@@ -6,13 +6,19 @@ import { initialsOf } from './gradient-header';
 
 type Props = {
   member: FamilyMember;
-  onRemove: () => void;
-  isRemoving?: boolean;
+  /** Opens a chat with this member. Omit to render the row without that affordance. */
+  onPress?: () => void;
 };
 
-export function FamilyMemberRow({ member, onRemove, isRemoving = false }: Props) {
+export function FamilyMemberRow({ member, onPress }: Props) {
   return (
-    <View style={styles.row}>
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={onPress ? `Chat with ${member.name}` : undefined}
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.row, onPress && pressed && styles.rowPressed]}
+    >
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{initialsOf(member.name)}</Text>
       </View>
@@ -22,16 +28,8 @@ export function FamilyMemberRow({ member, onRemove, isRemoving = false }: Props)
           {member.email}
         </Text>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Remove ${member.name}`}
-        onPress={onRemove}
-        disabled={isRemoving}
-        style={({ pressed }) => [styles.remove, (pressed || isRemoving) && styles.pressed]}
-      >
-        <Ionicons name="close" size={18} color={colors.danger} />
-      </Pressable>
-    </View>
+      {onPress ? <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.brand} /> : null}
+    </Pressable>
   );
 }
 
@@ -53,17 +51,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: spacing.md,
   },
+  rowPressed: { opacity: 0.7 },
   avatarText: { color: colors.brandDark, fontWeight: '700', fontSize: fontSize.sm },
   text: { flex: 1 },
   name: { fontSize: fontSize.md, fontWeight: '700', color: colors.text },
   email: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 2 },
-  remove: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.pill,
-    backgroundColor: colors.dangerSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pressed: { opacity: 0.6 },
 });

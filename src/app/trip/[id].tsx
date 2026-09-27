@@ -1,37 +1,48 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ComponentProps, ReactNode, useState } from 'react';
+import { Alert, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '../../api/client';
 import { BookingsSection } from '../../components/trip-sections/bookings-section';
 import { ItinerarySection } from '../../components/trip-sections/itinerary-section';
-import { MapSection } from '../../components/trip-sections/map-section';
 import { PackingSection } from '../../components/trip-sections/packing-section';
 import { PhotosSection } from '../../components/trip-sections/photos-section';
-import { ShareSection } from '../../components/trip-sections/share-section';
+import { ShareWithFamilyModal } from '../../components/trip-sections/share-popup-modal';
 import { ErrorState, LoadingState } from '../../components/ui/screen-state';
+import { useDestinationImage } from '../../hooks/use-destination-image';
 import { useDeleteTrip, useTrip } from '../../hooks/use-trips';
-import { budgetTierLabel, colors, fontSize, radii, spacing } from '../../theme';
+import { TripDetail } from '../../types/api';
+import { colors, fontSize, radii, spacing, tripCoverGradient } from '../../theme';
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 
 const SECTIONS = [
-  { key: 'itinerary', label: 'Plan' },
-  { key: 'map', label: 'Map' },
+  { key: 'itinerary', label: 'Itinerary' },
+  { key: 'bookings', label: 'Bookings' },
   { key: 'packing', label: 'Packing' },
   { key: 'photos', label: 'Photos' },
-  { key: 'bookings', label: 'Bookings' },
-  { key: 'share', label: 'Share' },
 ] as const;
 
 type SectionKey = (typeof SECTIONS)[number]['key'];
+
+const HERO_SCRIM = ['rgba(0,0,0,0.35)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.65)'] as const;
 
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const tripId = id ?? '';
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const trip = useTrip(tripId);
   const deleteTrip = useDeleteTrip();
+  // The uploaded cover wins; the Wikipedia lookup only covers older trips created without one.
+  const destinationImage = useDestinationImage(
+    trip.data && !trip.data.coverImageUrl ? trip.data.destination : '',
+  );
   const [section, setSection] = useState<SectionKey>('itinerary');
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   if (trip.isPending) return <LoadingState label="Loading trip…" />;
 
@@ -63,72 +74,169 @@ export default function TripDetailScreen() {
     ]);
   }
 
+  function goBack(): void {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/trips');
+  }
+
   const data = trip.data;
+  const heroImage = data.coverImageUrl ?? destinationImage.data ?? null;
+  const isOwner = data.viewerRole === 'owner';
+
+  const heroContent = (
+    <LinearGradient colors={HERO_SCRIM} style={[styles.heroInner, { paddingTop: insets.top + spacing.sm }]}>
+      <View style={styles.heroActions}>
+        <HeroButton icon="arrow-back" label="Go back" onPress={goBack} />
+        <View style={styles.heroActionsRight}>
+          {isOwner ? (
+            <HeroButton
+              icon="share-social-outline"
+              label="Share with family"
+              onPress={() => setIsShareOpen(true)}
+            />
+          ) : null}
+          {isOwner ? (
+            <HeroButton icon="trash-outline" label="Delete this trip" onPress={confirmDelete} />
+          ) : null}
+        </View>
+      </View>
+
+      <HeroText data={data} />
+    </LinearGradient>
+  );
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: data.destination,
-          headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Ask the assistant about this trip"
-              onPress={() => router.push(`/agent?tripId=${tripId}`)}
-              hitSlop={8}
-            >
-              <Ionicons name="sparkles" size={22} color={colors.primary} />
-            </Pressable>
-          ),
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
 
-      <ScrollView contentContainerStyle={styles.content} stickyHeaderIndices={[1]}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{data.title}</Text>
-          <Text style={styles.dates}>
-            {formatRange(data.startDate, data.endDate)} · {data.travelers}{' '}
-            {data.travelers === 1 ? 'traveller' : 'travellers'} · {budgetTierLabel[data.budgetTier]}
-          </Text>
-          {data.notes ? <Text style={styles.notes}>{data.notes}</Text> : null}
-        </View>
+      <ScrollView contentContainerStyle={styles.content} style={styles.screen}>
+        {heroImage ? (
+          <ImageBackground source={{ uri: heroImage }} style={styles.hero}>
+            {heroContent}
+          </ImageBackground>
+        ) : (
+          <LinearGradient
+            colors={tripCoverGradient(tripId)}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.hero}
+          >
+            {heroContent}
+          </LinearGradient>
+        )}
 
         <View style={styles.tabsBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {SECTIONS.map((item) => (
-              <Pressable
-                key={item.key}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: section === item.key }}
-                onPress={() => setSection(item.key)}
-                style={[styles.tab, section === item.key && styles.tabActive]}
-              >
-                <Text style={[styles.tabLabel, section === item.key && styles.tabLabelActive]}>
-                  {item.label}
-                </Text>
-              </Pressable>
-            ))}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabsRow}
+          >
+            {SECTIONS.map((item) => {
+              const isActive = section === item.key;
+              return (
+                <Pressable
+                  key={item.key}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isActive }}
+                  onPress={() => setSection(item.key)}
+                  style={[styles.tab, isActive && styles.tabActive]}
+                >
+                  <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
         </View>
 
         <View style={styles.section}>
-          {section === 'itinerary' ? <ItinerarySection trip={data} /> : null}
-          {section === 'map' ? <MapSection trip={data} /> : null}
-          {section === 'packing' ? <PackingSection tripId={tripId} /> : null}
-          {section === 'photos' ? <PhotosSection tripId={tripId} /> : null}
-          {section === 'bookings' ? <BookingsSection tripId={tripId} /> : null}
-          {section === 'share' ? <ShareSection tripId={tripId} tripTitle={data.title} /> : null}
-        </View>
+          {!isOwner ? (
+            <View style={styles.accessBanner}>
+              <Ionicons
+                name={data.viewerRole === 'editor' ? 'create-outline' : 'eye-outline'}
+                size={16}
+                color={colors.info}
+              />
+              <Text style={styles.accessBannerText}>
+                Shared with you · {data.viewerRole === 'editor' ? 'you can edit' : 'view only'}
+              </Text>
+            </View>
+          ) : null}
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={confirmDelete}
-          style={styles.deleteButton}
-        >
-          <Text style={styles.deleteLabel}>Delete this trip</Text>
-        </Pressable>
+          {section === 'itinerary' ? <ItinerarySection trip={data} /> : null}
+          {section === 'packing' ? (
+            <PackingSection tripId={tripId} viewerRole={data.viewerRole} />
+          ) : null}
+          {section === 'photos' ? (
+            <PhotosSection tripId={tripId} viewerRole={data.viewerRole} />
+          ) : null}
+          {section === 'bookings' ? (
+            <BookingsSection tripId={tripId} viewerRole={data.viewerRole} />
+          ) : null}
+        </View>
       </ScrollView>
+
+      <ShareWithFamilyModal
+        visible={isShareOpen}
+        tripId={tripId}
+        tripTitle={data.title}
+        onClose={() => setIsShareOpen(false)}
+      />
     </>
+  );
+}
+
+function HeroButton({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [styles.heroButton, pressed && styles.heroButtonPressed]}
+    >
+      <Ionicons name={icon} size={20} color={colors.textInverse} />
+    </Pressable>
+  );
+}
+
+function HeroText({ data }: { data: TripDetail }) {
+  return (
+    <View>
+      <Text style={styles.title}>{data.title}</Text>
+      <HeroMeta icon="location-outline">
+        {data.source ? `${data.source}  →  ${data.destination}` : data.destination}
+      </HeroMeta>
+      <HeroMeta icon="calendar-outline">
+        {formatRange(data.startDate, data.endDate)} · {data.travelers}{' '}
+        {data.travelers === 1 ? 'traveller' : 'travellers'}
+      </HeroMeta>
+      {data.notes ? (
+        <Text style={styles.notes} numberOfLines={2}>
+          {data.notes}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+function HeroMeta({ icon, children }: { icon: IconName; children: ReactNode }) {
+  return (
+    <View style={styles.metaRow}>
+      <Ionicons name={icon} size={16} color={colors.textInverse} />
+      <Text style={styles.metaText} numberOfLines={1}>
+        {children}
+      </Text>
+    </View>
   );
 }
 
@@ -140,33 +248,74 @@ function formatRange(start: string, end: string): string {
 }
 
 const styles = StyleSheet.create({
+  screen: { backgroundColor: colors.surface },
   content: { paddingBottom: spacing.xxl },
-  header: { padding: spacing.lg, backgroundColor: colors.background },
-  title: { fontSize: fontSize.xl, fontWeight: '700', color: colors.text },
-  dates: { fontSize: fontSize.sm, color: colors.textMuted, marginTop: spacing.xs },
+  hero: { minHeight: 280 },
+  heroInner: {
+    flex: 1,
+    minHeight: 280,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  heroActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  heroActionsRight: { flexDirection: 'row', gap: spacing.sm },
+  heroButton: {
+    width: 42,
+    height: 42,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroButtonPressed: { opacity: 0.7 },
+  title: {
+    fontSize: fontSize.xxl,
+    fontWeight: '800',
+    color: colors.textInverse,
+    marginBottom: spacing.sm,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  metaText: { flex: 1, fontSize: fontSize.sm, fontWeight: '600', color: colors.textInverse },
   notes: {
-    fontSize: fontSize.sm,
-    color: colors.text,
-    marginTop: spacing.md,
-    lineHeight: 20,
+    fontSize: fontSize.xs,
+    color: colors.textInverse,
+    opacity: 0.85,
     fontStyle: 'italic',
+    marginTop: spacing.sm,
   },
   tabsBar: {
     backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingHorizontal: spacing.sm,
-  },
-  tab: {
-    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
-  tabActive: { borderBottomColor: colors.primary },
-  tabLabel: { fontSize: fontSize.sm, color: colors.textMuted, fontWeight: '600' },
-  tabLabelActive: { color: colors.primary },
+  tabsRow: { gap: spacing.sm, paddingHorizontal: spacing.lg },
+  tab: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.pill,
+    backgroundColor: colors.brandSoft,
+  },
+  tabActive: { backgroundColor: colors.brand },
+  tabLabel: { fontSize: fontSize.sm, color: colors.brandDark, fontWeight: '600' },
+  tabLabelActive: { color: colors.textInverse, fontWeight: '700' },
   section: { padding: spacing.lg },
-  deleteButton: { padding: spacing.lg, alignItems: 'center' },
-  deleteLabel: { color: colors.danger, fontSize: fontSize.sm, fontWeight: '600' },
+  accessBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.infoSoft,
+    borderRadius: radii.pill,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  accessBannerText: { fontSize: fontSize.xs, fontWeight: '700', color: colors.info },
 });

@@ -1,4 +1,4 @@
-import { BookingKind, BookingOffer, SavedBooking } from '../types/api';
+import { BookingKind, BookingOffer, SavedBooking, SaveBookingInput, UpdateBookingInput } from '../types/api';
 import { api } from './client';
 
 /** Informational search only. Nothing is held or reserved. */
@@ -37,4 +37,22 @@ export async function saveBooking(
 
 export async function deleteBooking(tripId: string, bookingId: string): Promise<void> {
   await api.delete(`/trips/${tripId}/bookings/${bookingId}`);
+}
+
+/** Hand-entered booking — no search offer behind it, unlike `saveBooking`. */
+export async function createBooking(
+  tripId: string,
+  input: SaveBookingInput,
+): Promise<SavedBooking> {
+  const { data } = await api.post<SavedBooking>(`/trips/${tripId}/bookings`, input);
+  return data;
+}
+
+export async function updateBooking(
+  tripId: string,
+  bookingId: string,
+  input: UpdateBookingInput,
+): Promise<SavedBooking> {
+  const { data } = await api.patch<SavedBooking>(`/trips/${tripId}/bookings/${bookingId}`, input);
+  return data;
 }

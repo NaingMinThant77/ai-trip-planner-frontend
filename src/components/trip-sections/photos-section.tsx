@@ -1,14 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ApiError, toAbsoluteUrl } from '../../api/client';
 import { useDeletePhoto, usePhotos, useUploadPhoto } from '../../hooks/use-photos';
 import { colors, fontSize, radii, spacing } from '../../theme';
+import { ViewerRole } from '../../types/api';
 import { Button } from '../ui/button';
 import { ErrorState, LoadingState } from '../ui/screen-state';
 
-export function PhotosSection({ tripId }: { tripId: string }) {
+export function PhotosSection({
+  tripId,
+  viewerRole,
+}: {
+  tripId: string;
+  viewerRole: ViewerRole;
+}) {
+  const canEdit = viewerRole !== 'viewer';
   const photos = usePhotos(tripId);
   const upload = useUploadPhoto(tripId);
   const remove = useDeletePhoto(tripId);
@@ -51,9 +59,20 @@ export function PhotosSection({ tripId }: { tripId: string }) {
   }
 
   function confirmDelete(photoId: string): void {
-    Alert.alert('Remove photo', 'This cannot be undone.', [
+    Alert.alert('Remove photo', 'Are you sure you want to delete this photo.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => remove.mutate(photoId) },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () =>
+          remove.mutate(photoId, {
+            onError: (error) =>
+              Alert.alert(
+                'Could not remove photo',
+                error instanceof ApiError ? error.message : 'Please try again.',
+              ),
+          }),
+      },
     ]);
   }
 
@@ -72,11 +91,13 @@ export function PhotosSection({ tripId }: { tripId: string }) {
 
   return (
     <View>
-      <Button
-        label={upload.isPending ? 'Uploading…' : 'Add a photo'}
-        onPress={() => void pickAndUpload()}
-        isLoading={upload.isPending}
-      />
+      {canEdit ? (
+        <Button
+          label={upload.isPending ? 'Uploading…' : 'Add a photo'}
+          onPress={() => void pickAndUpload()}
+          isLoading={upload.isPending}
+        />
+      ) : null}
 
       {photos.data.length === 0 ? (
         <View style={styles.empty}>
@@ -89,27 +110,35 @@ export function PhotosSection({ tripId }: { tripId: string }) {
       ) : (
         <View style={styles.grid}>
           {photos.data.map((photo) => (
-            <Pressable
-              key={photo.id}
-              accessibilityRole="button"
-              accessibilityLabel={photo.caption ?? 'Trip photo'}
-              onLongPress={() => confirmDelete(photo.id)}
-              style={styles.tile}
-            >
+            <View key={photo.id} style={styles.tile}>
               <Image
+                accessibilityLabel={photo.caption ?? 'Trip photo'}
                 source={{ uri: toAbsoluteUrl(photo.url) }}
                 style={styles.image}
                 contentFit="cover"
                 transition={150}
               />
-            </Pressable>
+              {canEdit ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove photo"
+                  onPress={() => confirmDelete(photo.id)}
+                  disabled={remove.isPending && remove.variables === photo.id}
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.removeButton, pressed && styles.removePressed]}
+                >
+                  {remove.isPending && remove.variables === photo.id ? (
+                    <ActivityIndicator size="small" color={colors.textInverse} />
+                  ) : (
+                    <Ionicons name="close" size={16} color={colors.textInverse} />
+                  )}
+                </Pressable>
+              ) : null}
+            </View>
           ))}
         </View>
       )}
 
-      {photos.data.length > 0 ? (
-        <Text style={styles.hint}>Long-press a photo to remove it.</Text>
-      ) : null}
     </View>
   );
 }
@@ -141,10 +170,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
   },
   image: { width: '100%', height: '100%' },
-  hint: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: spacing.md,
+  removeButton: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: spacing.xs,
+    width: 26,
+    height: 26,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  removePressed: { opacity: 0.7 },
 });

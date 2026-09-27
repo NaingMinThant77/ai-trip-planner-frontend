@@ -4,9 +4,6 @@
  * AGENTS.md rule 3: if you change one side, change this file in the same commit.
  */
 
-export const BUDGET_TIERS = ['budget', 'mid', 'luxury'] as const;
-export type BudgetTier = (typeof BUDGET_TIERS)[number];
-
 export const PACKING_CATEGORIES = [
   'clothing',
   'documents',
@@ -17,7 +14,7 @@ export const PACKING_CATEGORIES = [
 ] as const;
 export type PackingCategory = (typeof PACKING_CATEGORIES)[number];
 
-export const BOOKING_KINDS = ['hotel', 'car', 'flight'] as const;
+export const BOOKING_KINDS = ['hotel', 'car', 'flight', 'extra'] as const;
 export type BookingKind = (typeof BOOKING_KINDS)[number];
 
 export type TripStatus = 'draft' | 'generating' | 'ready' | 'failed';
@@ -39,7 +36,17 @@ export type UserProfile = User & {
   inviteCode: string;
 };
 
-/** Someone the signed-in user added by invite code. One-directional — see decision #19. */
+/** A direct message with a family member. */
+export type Message = {
+  id: string;
+  senderId: string;
+  recipientId: string;
+  text: string;
+  createdAt: string;
+  readAt: string | null;
+};
+
+/** Someone the signed-in user added by invite code. Mutual: appears in both people's lists. */
 export type FamilyMember = {
   id: string;
   /** The added account's user id, not the row id. */
@@ -64,6 +71,9 @@ export type Activity = {
   latitude: number | null;
   longitude: number | null;
   durationMin: number;
+  /** "HH:mm" 24-hour. Null on generated stops, which only carry `timeOfDay`. */
+  startTime: string | null;
+  endTime: string | null;
   /** Model-produced text. Render as a hint, never as a confirmed price. */
   costEstimate: string | null;
 };
@@ -80,14 +90,13 @@ export type TripDay = {
 export type Trip = {
   id: string;
   title: string;
+  source: string;
   destination: string;
   latitude: number | null;
   longitude: number | null;
   startDate: string;
   endDate: string;
   travelers: number;
-  budgetTier: BudgetTier;
-  interests: string[];
   notes: string | null;
   status: TripStatus;
   coverImageUrl: string | null;
@@ -95,17 +104,39 @@ export type Trip = {
   updatedAt: string;
 };
 
-export type TripDetail = Trip & { days: TripDay[] };
+/** Milestone-based, computed server-side from row counts. See 03-api-contract.md. */
+export type TripPlanning = {
+  /** 0-100, in steps of 25 — itinerary is worth 50, packing and bookings 25 each. */
+  progress: number;
+  hasItinerary: boolean;
+  hasPacking: boolean;
+  hasBookings: boolean;
+};
+
+/** What `GET /trips` returns. The detail route ships `days` instead. */
+export type TripListItem = Trip & { planning: TripPlanning };
+
+/** The caller's relationship to the trip — an owner has full access; a collaborator gets
+ * whichever of these two roles they were given. */
+export type ViewerRole = 'owner' | 'viewer' | 'editor';
+
+export type TripDetail = Trip & { days: TripDay[]; viewerRole: ViewerRole };
 
 export type CreateTripInput = {
   title?: string;
+  source: string;
   destination: string;
   startDate: string;
   endDate: string;
-  travelers: number;
-  budgetTier: BudgetTier;
-  interests: string[];
+  travelers?: number;
+  coverImageUrl: string;
+  coverImagePublicId?: string;
   notes?: string;
+};
+
+export type UploadedCoverImage = {
+  url: string;
+  publicId: string;
 };
 
 export type PackingItem = {
@@ -158,18 +189,62 @@ export type SavedBooking = {
   createdAt: string;
 };
 
+export type CreateActivityInput = {
+  /** The server derives this (and `durationMin`) from the times when both are sent. */
+  timeOfDay?: TimeOfDay;
+  startTime?: string;
+  endTime?: string;
+  title: string;
+  description?: string;
+  location?: string;
+  durationMin?: number;
+  costEstimate?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
+export type UpdateActivityInput = Partial<CreateActivityInput>;
+
+export type SaveBookingInput = {
+  kind: BookingKind;
+  title: string;
+  provider: string;
+  priceText?: string;
+  location?: string;
+  startsAt?: string;
+  endsAt?: string;
+  detail?: string;
+  externalUrl?: string;
+};
+
+export type UpdateBookingInput = Partial<SaveBookingInput>;
+
 export type ShareState = {
   isShared: boolean;
   shareToken: string | null;
   sharePath: string | null;
 };
 
+export type CollaboratorRole = 'viewer' | 'editor';
+
 export type Collaborator = {
   id: string;
   email: string;
   name: string | null;
-  role: string;
+  role: CollaboratorRole;
   invitedAt: string;
+};
+
+/** A trip in the signed-in user's "shared with me" list, not one they own. */
+export type SharedWithMeTrip = {
+  id: string;
+  title: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  ownerName: string;
+  role: CollaboratorRole;
+  sharedAt: string;
 };
 
 export type Destination = {

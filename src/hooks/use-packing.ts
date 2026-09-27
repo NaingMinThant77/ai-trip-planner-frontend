@@ -61,6 +61,23 @@ export function useTogglePackingItem(tripId: string) {
   });
 }
 
+/** Editing label/category/quantity from a form, as opposed to the optimistic checkbox toggle above. */
+export function useEditPackingItem(tripId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: {
+      itemId: string;
+      label?: string;
+      category?: PackingCategory;
+      quantity?: number;
+    }) => packingApi.updatePackingItem(tripId, input.itemId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: packingKeys.list(tripId) });
+    },
+  });
+}
+
 export function useDeletePackingItem(tripId: string) {
   const queryClient = useQueryClient();
 

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as bookingsApi from '../api/bookings';
-import { BookingKind, BookingOffer } from '../types/api';
+import { BookingKind, BookingOffer, SaveBookingInput, UpdateBookingInput } from '../types/api';
 
 export const bookingKeys = {
   saved: (tripId: string) => ['bookings', tripId] as const,
@@ -30,6 +30,29 @@ export function useSaveBooking(tripId: string) {
 
   return useMutation({
     mutationFn: (offer: BookingOffer) => bookingsApi.saveBooking(tripId, offer),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.saved(tripId) });
+    },
+  });
+}
+
+export function useCreateBooking(tripId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: SaveBookingInput) => bookingsApi.createBooking(tripId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.saved(tripId) });
+    },
+  });
+}
+
+export function useUpdateBooking(tripId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { bookingId: string; booking: UpdateBookingInput }) =>
+      bookingsApi.updateBooking(tripId, input.bookingId, input.booking),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.saved(tripId) });
     },

@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ApiError } from "../../api/client";
 import { AddByCode } from "../../components/profile/add-by-code";
@@ -6,11 +7,7 @@ import { GradientHeader } from "../../components/profile/gradient-header";
 import { InviteCodeCard } from "../../components/profile/invite-code-card";
 import { ErrorState, LoadingState } from "../../components/ui/screen-state";
 import { useProfile } from "../../hooks/use-explore";
-import {
-  useAddFamilyMember,
-  useFamily,
-  useRemoveFamilyMember,
-} from "../../hooks/use-family";
+import { useAddFamilyMember, useFamily } from "../../hooks/use-family";
 import { colors, fontSize, layout, radii, spacing } from "../../theme";
 
 function messageOf(error: unknown, fallback: string): string {
@@ -18,10 +15,10 @@ function messageOf(error: unknown, fallback: string): string {
 }
 
 export default function FamilyScreen() {
+  const router = useRouter();
   const profile = useProfile();
   const family = useFamily();
   const addMember = useAddFamilyMember();
-  const removeMember = useRemoveFamilyMember();
 
   // Both queries feed one screen, so they share one loading and one error state.
   if (profile.isPending || family.isPending)
@@ -55,30 +52,6 @@ export default function FamilyScreen() {
       );
       throw error;
     }
-  }
-
-  function handleRemove(id: string, name: string): void {
-    Alert.alert(
-      "Remove member",
-      `${name} will no longer appear when you share a trip.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => {
-            removeMember.mutate(id, {
-              onError: (error) => {
-                Alert.alert(
-                  "Could not remove",
-                  messageOf(error, "Please try again."),
-                );
-              },
-            });
-          },
-        },
-      ],
-    );
   }
 
   const members = family.data;
@@ -115,9 +88,11 @@ export default function FamilyScreen() {
             <FamilyMemberRow
               key={member.id}
               member={member}
-              onRemove={() => handleRemove(member.id, member.name)}
-              isRemoving={
-                removeMember.isPending && removeMember.variables === member.id
+              onPress={() =>
+                router.push({
+                  pathname: '/chat/[peerId]',
+                  params: { peerId: member.userId, name: member.name, memberId: member.id },
+                })
               }
             />
           ))

@@ -30,7 +30,7 @@ export const API_BASE_URL = inferDevBaseUrl();
 /** Origin without the /api suffix — photo URLs from the server are origin-relative. */
 export const API_ORIGIN = API_BASE_URL.replace(/\/api$/, '');
 
-/** Turns a server-relative path such as "/uploads/abc.jpg" into a loadable URL. */
+/** Turns a server-relative path such as "/api/uploads/abc.jpg" into a loadable URL. */
 export function toAbsoluteUrl(path: string): string {
   return path.startsWith('http') ? path : `${API_ORIGIN}${path}`;
 }
@@ -46,6 +46,11 @@ let authToken: string | null = null;
 /** Called by the auth context on sign-in, restore, and sign-out. */
 export function setAuthToken(token: string | null): void {
   authToken = token;
+}
+
+/** Read by the chat socket connection, which authenticates its handshake the same way. */
+export function getAuthToken(): string | null {
+  return authToken;
 }
 
 api.interceptors.request.use((config) => {
