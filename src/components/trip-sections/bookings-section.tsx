@@ -15,11 +15,11 @@ import {
   jellyColors,
   jellyGradients,
   jellyShadow,
-  jellyShadowSmall,
   radii,
   spacing,
 } from '../../theme';
 import { BookingKind, SavedBooking, SaveBookingInput, ViewerRole } from '../../types/api';
+import { BookingCard } from '../booking-card';
 import { BookingFormModal } from '../booking-form-modal';
 import { Chip } from '../ui/chip';
 
@@ -168,61 +168,17 @@ export function BookingsSection({
       ) : (
         <View style={styles.list}>
           {bookings.map((booking) => (
-            <View key={booking.id} style={[styles.card, jellyShadow]}>
-              <View style={styles.cardHeader}>
-                <View style={[styles.cardIcon, { backgroundColor: meta.color }]}>
-                  <Ionicons name={meta.icon} size={18} color={colors.textInverse} />
-                </View>
-                <View style={styles.cardHeaderText}>
-                  <Text style={styles.cardTitle}>{booking.title}</Text>
-                  {booking.provider ? (
-                    <Text style={styles.cardProvider}>{booking.provider}</Text>
-                  ) : null}
-                </View>
-                {booking.priceText ? (
-                  <Text style={[styles.price, { color: meta.color }]}>{booking.priceText}</Text>
-                ) : null}
-              </View>
-
-              {booking.location ? (
-                <View style={styles.metaRow}>
-                  <Ionicons name="location-outline" size={14} color={colors.textMuted} />
-                  <Text style={styles.metaText}>{booking.location}</Text>
-                </View>
-              ) : null}
-
-              {booking.startsAt || booking.endsAt ? (
-                <View style={styles.metaRow}>
-                  <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
-                  <Text style={styles.metaText}>
-                    {[booking.startsAt, booking.endsAt].filter(Boolean).join('   →   ')}
-                  </Text>
-                </View>
-              ) : null}
-
-              {booking.detail ? <Text style={styles.detail}>{booking.detail}</Text> : null}
-
-              {canEdit ? (
-                <View style={styles.cardActions}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Edit booking"
-                    onPress={() => setFormState({ mode: 'edit', booking })}
-                    style={[styles.iconButton, jellyShadowSmall, { backgroundColor: meta.soft }]}
-                  >
-                    <Ionicons name="pencil" size={15} color={meta.color} />
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Delete booking"
-                    onPress={() => confirmDelete(booking)}
-                    style={[styles.iconButton, jellyShadowSmall, styles.deleteButton]}
-                  >
-                    <Ionicons name="trash" size={15} color={colors.danger} />
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
+            <BookingCard
+              key={booking.id}
+              booking={booking}
+              kind={kind}
+              icon={meta.icon}
+              color={meta.color}
+              soft={meta.soft}
+              canEdit={canEdit}
+              onEdit={() => setFormState({ mode: 'edit', booking })}
+              onDelete={() => confirmDelete(booking)}
+            />
           ))}
         </View>
       )}
@@ -266,51 +222,6 @@ export function BookingsSection({
 const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md },
   list: { marginBottom: spacing.lg },
-  card: {
-    backgroundColor: colors.background,
-    borderRadius: radii.xl,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  cardIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardHeaderText: { flex: 1 },
-  cardTitle: { fontSize: fontSize.md, fontWeight: '700', color: colors.text },
-  cardProvider: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 2 },
-  price: { fontSize: fontSize.sm, fontWeight: '800' },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  metaText: { fontSize: fontSize.xs, color: colors.textMuted, flexShrink: 1 },
-  detail: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    lineHeight: 18,
-    marginTop: spacing.sm,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  iconButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteButton: { backgroundColor: colors.dangerSoft },
   emptyCard: {
     borderRadius: radii.xxl,
     padding: spacing.xl,

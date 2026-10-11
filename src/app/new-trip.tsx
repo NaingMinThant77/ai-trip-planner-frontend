@@ -204,10 +204,10 @@ export default function NewTripScreen() {
             mode="date"
             display={Platform.OS === 'ios' ? 'inline' : 'default'}
             minimumDate={picker === 'end' ? startDate : new Date()}
-            onChange={(event, selected) => {
-              // Android fires 'dismissed' on cancel; iOS keeps the inline picker open.
+            onDismiss={() => setPicker(null)}
+            onValueChange={(_event, selected) => {
+              // Android dialog closes itself; iOS keeps the inline picker open until Done.
               if (Platform.OS === 'android') setPicker(null);
-              if (event.type === 'dismissed' || !selected) return;
 
               if (picker === 'start') {
                 setStartDate(selected);

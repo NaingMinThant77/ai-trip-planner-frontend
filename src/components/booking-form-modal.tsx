@@ -11,9 +11,11 @@ import {
   Text,
   View,
 } from 'react-native';
+import { parseDetail, parseLocation } from '../lib/booking-format';
 import { colors, fontSize, jellyColors, jellyGradients, jellyShadow, radii, spacing } from '../theme';
 import { BookingKind, SavedBooking, SaveBookingInput } from '../types/api';
 import { GradientButton } from './ui/gradient-button';
+import { DateTimeField, isEarlier } from './ui/date-time-field';
 import { TextField } from './ui/text-field';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -113,6 +115,18 @@ const KIND_META: Record<
   extra: { label: 'extra', icon: 'ticket', color: jellyColors.berry, gradient: jellyGradients.berry },
 };
 
+function withNotes(lines: string[], notes: string): string | undefined {
+  const trimmed = notes.trim();
+  return [...lines, ...(trimmed ? [`Notes: ${trimmed}`] : [])].join('\n') || undefined;
+}
+
+/** Server timestamps come back as ISO; the pickers (and the stored format) use `YYYY-MM-DD HH:mm`. */
+function toFieldValue(iso: string | null | undefined, dateOnly = false): string {
+  if (!iso) return '';
+  const day = iso.slice(0, 10);
+  return dateOnly ? day : `${day} ${iso.slice(11, 16) || '00:00'}`;
+}
+
 function buildInitialFields(
   kind: BookingKind,
   mode: 'create' | 'edit',
@@ -120,7 +134,10 @@ function buildInitialFields(
 ): FormFields {
   if (mode !== 'edit' || !initialValue) return EMPTY_FIELDS;
 
+  const parsed = parseDetail(initialValue.detail);
+  const places = parseLocation(initialValue.location);
   const common = {
+    notes: parsed.notes ?? '',
     priceText: initialValue.priceText ?? '',
     externalUrl: initialValue.externalUrl ?? '',
   };
@@ -132,8 +149,11 @@ function buildInitialFields(
         ...common,
         airline: initialValue.provider ?? '',
         route: initialValue.title ?? '',
-        departure: initialValue.startsAt ?? '',
-        arrival: initialValue.endsAt ?? '',
+        flightNumber: parsed.headline ?? '',
+        seat: parsed.seat ?? '',
+        flightConfirmation: parsed.confirmation ?? '',
+        departure: toFieldValue(initialValue.startsAt),
+        arrival: toFieldValue(initialValue.endsAt),
       };
     case 'car':
       return {
@@ -141,9 +161,11 @@ function buildInitialFields(
         ...common,
         rentalCompany: initialValue.provider ?? '',
         carType: initialValue.title ?? '',
-        pickupLocation: initialValue.location ?? '',
-        pickupDate: initialValue.startsAt ?? '',
-        dropoffDate: initialValue.endsAt ?? '',
+        pickupLocation: places.pickup ?? places.plain ?? '',
+        dropoffLocation: places.dropoff ?? '',
+        carConfirmation: parsed.confirmation ?? '',
+        pickupDate: toFieldValue(initialValue.startsAt),
+        dropoffDate: toFieldValue(initialValue.endsAt),
       };
     case 'hotel':
       return {
@@ -151,8 +173,10 @@ function buildInitialFields(
         ...common,
         hotelName: initialValue.title || initialValue.provider || '',
         address: initialValue.location ?? '',
-        checkIn: initialValue.startsAt ?? '',
-        checkOut: initialValue.endsAt ?? '',
+        roomType: parsed.room ?? '',
+        hotelConfirmation: parsed.confirmation ?? '',
+        checkIn: toFieldValue(initialValue.startsAt, true),
+        checkOut: toFieldValue(initialValue.endsAt, true),
       };
     case 'extra':
     default:
@@ -162,7 +186,7 @@ function buildInitialFields(
         extraTitle: initialValue.title ?? '',
         extraProvider: initialValue.provider ?? '',
         extraLocation: initialValue.location ?? '',
-        extraDateTime: initialValue.startsAt ?? '',
+        extraDateTime: toFieldValue(initialValue.startsAt),
         notes: initialValue.detail ?? '',
       };
   }
@@ -190,7 +214,7 @@ function buildSubmitInput(kind: BookingKind, fields: FormFields): SaveBookingInp
         priceText,
         startsAt: fields.departure.trim() || undefined,
         endsAt: fields.arrival.trim() || undefined,
-        detail: detailLines.join('\n') || undefined,
+        detail: withNotes(detailLines, fields.notes),
         externalUrl,
       };
     }
@@ -209,7 +233,7 @@ function buildSubmitInput(kind: BookingKind, fields: FormFields): SaveBookingInp
         location: locationParts.join(' · ') || undefined,
         startsAt: fields.pickupDate.trim() || undefined,
         endsAt: fields.dropoffDate.trim() || undefined,
-        detail: detailLines.join('\n') || undefined,
+        detail: withNotes(detailLines, fields.notes),
         externalUrl,
       };
     }
@@ -228,7 +252,7 @@ function buildSubmitInput(kind: BookingKind, fields: FormFields): SaveBookingInp
         location: fields.address.trim() || undefined,
         startsAt: fields.checkIn.trim() || undefined,
         endsAt: fields.checkOut.trim() || undefined,
-        detail: detailLines.join('\n') || undefined,
+        detail: withNotes(detailLines, fields.notes),
         externalUrl,
       };
     }
@@ -247,14 +271,22 @@ function buildSubmitInput(kind: BookingKind, fields: FormFields): SaveBookingInp
   }
 }
 
+const endsBeforeStart = (start: string, end: string): boolean =>
+  Boolean(start) && Boolean(end) && isEarlier(end, start);
+
 function isSubmittable(kind: BookingKind, fields: FormFields): boolean {
   switch (kind) {
     case 'flight':
-      return fields.airline.trim().length > 0;
+      return fields.airline.trim().length > 0 && !endsBeforeStart(fields.departure, fields.arrival);
     case 'car':
-      return fields.rentalCompany.trim().length > 0;
+      return (
+        fields.rentalCompany.trim().length > 0 &&
+        !endsBeforeStart(fields.pickupDate, fields.dropoffDate)
+      );
     case 'hotel':
-      return fields.hotelName.trim().length > 0;
+      return (
+        fields.hotelName.trim().length > 0 && !endsBeforeStart(fields.checkIn, fields.checkOut)
+      );
     case 'extra':
     default:
       return fields.extraTitle.trim().length > 0;
@@ -348,37 +380,42 @@ export function BookingFormModal({
                     </View>
                     <View style={styles.rowItem}>
                       <TextField
-                        label="Seat"
-                        placeholder="14C"
+                        label="Seats"
+                        placeholder="14C, 14D"
                         value={fields.seat}
                         onChangeText={(value) => set('seat', value)}
                       />
                     </View>
                   </View>
-                  <View style={styles.row}>
-                    <View style={styles.rowItem}>
-                      <TextField
-                        label="Departure"
-                        placeholder="2026-09-10 14:30"
-                        value={fields.departure}
-                        onChangeText={(value) => set('departure', value)}
-                      />
-                    </View>
-                    <View style={styles.rowItem}>
-                      <TextField
-                        label="Arrival"
-                        placeholder="2026-09-11 06:15"
-                        value={fields.arrival}
-                        onChangeText={(value) => set('arrival', value)}
-                      />
-                    </View>
-                  </View>
+                  <DateTimeField
+                    label="Departure"
+                    mode="datetime"
+                    value={fields.departure}
+                    onChange={(value) => set('departure', value)}
+                  />
+                  <DateTimeField
+                    label="Arrival"
+                    mode="datetime"
+                    value={fields.arrival}
+                    minimumValue={fields.departure}
+                    minimumMessage="Arrival can’t be earlier than departure"
+                    onChange={(value) => set('arrival', value)}
+                  />
                   <TextField
                     label="Confirmation code"
                     placeholder="ABC123"
                     autoCapitalize="characters"
                     value={fields.flightConfirmation}
                     onChangeText={(value) => set('flightConfirmation', value)}
+                  />
+                  <TextField
+                    label="Notes"
+                    placeholder="Anything worth remembering"
+                    value={fields.notes}
+                    onChangeText={(value) => set('notes', value)}
+                    multiline
+                    numberOfLines={3}
+                    style={styles.notesInput}
                   />
                 </>
               ) : null}
@@ -409,30 +446,35 @@ export function BookingFormModal({
                     value={fields.dropoffLocation}
                     onChangeText={(value) => set('dropoffLocation', value)}
                   />
-                  <View style={styles.row}>
-                    <View style={styles.rowItem}>
-                      <TextField
-                        label="Pickup date"
-                        placeholder="2026-09-10 09:00"
-                        value={fields.pickupDate}
-                        onChangeText={(value) => set('pickupDate', value)}
-                      />
-                    </View>
-                    <View style={styles.rowItem}>
-                      <TextField
-                        label="Drop-off date"
-                        placeholder="2026-09-15 09:00"
-                        value={fields.dropoffDate}
-                        onChangeText={(value) => set('dropoffDate', value)}
-                      />
-                    </View>
-                  </View>
+                  <DateTimeField
+                    label="Pickup date"
+                    mode="datetime"
+                    value={fields.pickupDate}
+                    onChange={(value) => set('pickupDate', value)}
+                  />
+                  <DateTimeField
+                    label="Drop-off date"
+                    mode="datetime"
+                    value={fields.dropoffDate}
+                    minimumValue={fields.pickupDate}
+                    minimumMessage="Drop-off can’t be earlier than pickup"
+                    onChange={(value) => set('dropoffDate', value)}
+                  />
                   <TextField
                     label="Confirmation code"
                     placeholder="ABC123"
                     autoCapitalize="characters"
                     value={fields.carConfirmation}
                     onChangeText={(value) => set('carConfirmation', value)}
+                  />
+                  <TextField
+                    label="Notes"
+                    placeholder="Anything worth remembering"
+                    value={fields.notes}
+                    onChangeText={(value) => set('notes', value)}
+                    multiline
+                    numberOfLines={3}
+                    style={styles.notesInput}
                   />
                 </>
               ) : null}
@@ -453,19 +495,21 @@ export function BookingFormModal({
                   />
                   <View style={styles.row}>
                     <View style={styles.rowItem}>
-                      <TextField
+                      <DateTimeField
                         label="Check-in"
-                        placeholder="2026-09-10"
+                        mode="date"
                         value={fields.checkIn}
-                        onChangeText={(value) => set('checkIn', value)}
+                        onChange={(value) => set('checkIn', value)}
                       />
                     </View>
                     <View style={styles.rowItem}>
-                      <TextField
+                      <DateTimeField
                         label="Check-out"
-                        placeholder="2026-09-15"
+                        mode="date"
                         value={fields.checkOut}
-                        onChangeText={(value) => set('checkOut', value)}
+                    minimumValue={fields.checkIn}
+                    minimumMessage="Check-out can’t be earlier than check-in"
+                        onChange={(value) => set('checkOut', value)}
                       />
                     </View>
                   </View>
@@ -481,6 +525,15 @@ export function BookingFormModal({
                     autoCapitalize="characters"
                     value={fields.hotelConfirmation}
                     onChangeText={(value) => set('hotelConfirmation', value)}
+                  />
+                  <TextField
+                    label="Notes"
+                    placeholder="Anything worth remembering"
+                    value={fields.notes}
+                    onChangeText={(value) => set('notes', value)}
+                    multiline
+                    numberOfLines={3}
+                    style={styles.notesInput}
                   />
                 </>
               ) : null}
@@ -505,11 +558,11 @@ export function BookingFormModal({
                     value={fields.extraLocation}
                     onChangeText={(value) => set('extraLocation', value)}
                   />
-                  <TextField
+                  <DateTimeField
                     label="Date / time"
-                    placeholder="2026-09-12 10:00"
+                    mode="datetime"
                     value={fields.extraDateTime}
-                    onChangeText={(value) => set('extraDateTime', value)}
+                    onChange={(value) => set('extraDateTime', value)}
                   />
                   <TextField
                     label="Notes"

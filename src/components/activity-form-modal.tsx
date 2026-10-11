@@ -167,12 +167,12 @@ export function ActivityFormModal({
                     is24Hour={false}
                     minuteInterval={5}
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={(event, selected) => {
+                    onValueChange={(_event, selected) => {
                       // Android shows a dialog that closes itself; iOS stays inline until Done.
                       if (Platform.OS === 'android') setPicker(null);
-                      if (event.type === 'dismissed' || !selected) return;
                       handlePick(selected);
                     }}
+                    onDismiss={() => setPicker(null)}
                   />
                   {Platform.OS === 'ios' ? (
                     <Pressable
