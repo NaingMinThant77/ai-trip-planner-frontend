@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '../../api/client';
@@ -17,6 +18,15 @@ export default function SharedTripsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const shared = useSharedWithMe();
+  const { refetch } = shared;
+
+  // Tabs stay mounted, so without this the list is whatever it was the first time the tab was
+  // seen — a trip shared a minute later would not appear until a manual pull-to-refresh.
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
 
   if (shared.isPending) return <LoadingState label="Loading shared trips…" />;
 

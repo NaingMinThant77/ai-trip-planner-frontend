@@ -266,3 +266,9 @@ export type Suggestion = Destination & {
   reason: string;
   score: number;
 };
+
+export type UnreadSummary = {
+  total: number;
+  /** Unread count keyed by the sender's user id. */
+  byPeer: Record<string, number>;
+};

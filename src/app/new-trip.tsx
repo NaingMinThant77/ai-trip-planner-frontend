@@ -7,7 +7,6 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -21,6 +20,7 @@ import { TextField } from '../components/ui/text-field';
 import { useGenerateTripCover, useUploadTripCover } from '../hooks/use-trip-cover';
 import { useCreateTrip } from '../hooks/use-trips';
 import { colors, fontSize, radii, spacing } from '../theme';
+import { KeyboardSafeView } from '../components/ui/keyboard-safe-view';
 
 /** Mirrors MAX_TRIP_DAYS on the server so the error arrives before the round trip. */
 const MAX_TRIP_DAYS = 14;
@@ -156,8 +156,7 @@ export default function NewTripScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <KeyboardSafeView
       style={styles.flex}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -310,7 +309,7 @@ export default function NewTripScreen() {
           isLoading={createTrip.isPending}
         />
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

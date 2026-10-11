@@ -4,8 +4,6 @@ import { useEffect, useRef } from 'react';
 import {
   Alert,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -21,6 +19,7 @@ import { initialsOf } from '../../components/profile/gradient-header';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import { ErrorState, LoadingState } from '../../components/ui/screen-state';
 import { Message } from '../../types/api';
+import { KeyboardSafeView } from '../../components/ui/keyboard-safe-view';
 
 export default function ChatScreen() {
   const params = useLocalSearchParams<{ peerId: string; name?: string; memberId?: string }>();
@@ -107,9 +106,7 @@ export default function ChatScreen() {
             : undefined,
         }}
       />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 96 : 0}
+      <KeyboardSafeView iosOffset={96}
         style={styles.flex}
       >
         {messages.length === 0 ? (
@@ -153,7 +150,7 @@ export default function ChatScreen() {
             <Ionicons name="send" size={18} color={colors.textInverse} />
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardSafeView>
     </>
   );
 }

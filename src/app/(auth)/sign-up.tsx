@@ -1,8 +1,6 @@
 import { Link } from "expo-router";
 import { useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +16,7 @@ import { GradientButton } from "../../components/ui/gradient-button";
 import { TextField } from "../../components/ui/text-field";
 import { useAuth } from "../../context/auth";
 import { colors, fontSize, spacing } from "../../theme";
+import { KeyboardSafeView } from '../../components/ui/keyboard-safe-view';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -76,8 +75,7 @@ export default function SignUpScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      <KeyboardSafeView
         style={styles.flex}
       >
         <ScrollView
@@ -151,7 +149,7 @@ export default function SignUpScreen() {
             </View>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardSafeView>
     </SafeAreaView>
   );
 }

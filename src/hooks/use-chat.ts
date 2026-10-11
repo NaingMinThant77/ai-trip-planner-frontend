@@ -7,7 +7,47 @@ import { Message } from '../types/api';
 
 export const chatKeys = {
   thread: (peerId: string) => ['messages', peerId] as const,
+  unread: ['messages-unread'] as const,
 };
+
+/** Unread counts for the Family tab badge and the per-member rows. */
+export function useUnreadMessages() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: chatKeys.unread,
+    queryFn: messagesApi.getUnreadSummary,
+    enabled: Boolean(user),
+  });
+}
+
+/**
+ * Keeps the unread counts live app-wide: any message addressed to me, or a read receipt from
+ * another of my devices, refetches the summary. Mount once, somewhere that outlives the chat
+ * screen (the tab layout).
+ */
+export function useUnreadSync(): void {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !user) return;
+
+    function refresh(): void {
+      void queryClient.invalidateQueries({ queryKey: chatKeys.unread });
+    }
+    function handleNew(message: Message): void {
+      if (message.recipientId === user!.id) refresh();
+    }
+
+    socket.on('message:new', handleNew);
+    socket.on('connect', refresh);
+    return () => {
+      socket.off('message:new', handleNew);
+      socket.off('connect', refresh);
+    };
+  }, [user, queryClient]);
+}
 
 export function useChatThread(peerId: string) {
   const { user } = useAuth();
@@ -34,7 +74,10 @@ export function useChatThread(peerId: string) {
 
     function markReadIfNeeded(): void {
       if (!socket) return;
-      socket.emit('message:read', { peerId });
+      // The ack fires once the server has stored the read marks, so the badge refetch sees 0.
+      socket.emit('message:read', { peerId }, () => {
+        void queryClient.invalidateQueries({ queryKey: chatKeys.unread });
+      });
     }
 
     function handleNew(message: Message): void {

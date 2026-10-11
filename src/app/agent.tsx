@@ -3,8 +3,6 @@ import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -16,6 +14,7 @@ import { BlockRenderer } from '../components/blocks/block-renderer';
 import { useMessages, useSendMessage } from '../hooks/use-agent';
 import { colors, fontSize, radii, spacing } from '../theme';
 import { AgentMessage } from '../types/blocks';
+import { KeyboardSafeView } from '../components/ui/keyboard-safe-view';
 
 const STARTERS = [
   'Plan a long weekend somewhere warm',
@@ -52,9 +51,7 @@ export default function AgentScreen() {
   const isEmpty = thread.length === 0 && !sendMessage.isPending;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 96 : 0}
+    <KeyboardSafeView iosOffset={96}
       style={styles.flex}
     >
       {isEmpty ? (
@@ -116,7 +113,7 @@ export default function AgentScreen() {
           <Text style={styles.sendLabel}>Send</Text>
         </Pressable>
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

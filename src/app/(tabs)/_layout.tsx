@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { ComponentProps } from 'react';
 import { ColorValue, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useUnreadMessages, useUnreadSync } from '../../hooks/use-chat';
 import { colors, layout, radii, spacing } from '../../theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -13,6 +14,9 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
  */
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const unread = useUnreadMessages();
+  useUnreadSync();
+  const unreadTotal = unread.data?.total ?? 0;
 
   return (
     <Tabs
@@ -54,6 +58,8 @@ export default function TabsLayout() {
         name="family"
         options={{
           title: 'Family',
+          tabBarBadge: unreadTotal > 0 ? (unreadTotal > 99 ? '99+' : unreadTotal) : undefined,
+          tabBarBadgeStyle: styles.badge,
           tabBarIcon: renderIcon('people-outline', 'people'),
         }}
       />
@@ -105,6 +111,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 12,
   },
+  badge: { backgroundColor: colors.danger, color: colors.textInverse, fontSize: 10, fontWeight: '700' },
   item: { borderRadius: radii.xxl },
   label: { fontSize: 11, fontWeight: '600' },
   iconWrap: {

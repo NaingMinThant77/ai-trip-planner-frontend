@@ -2,8 +2,6 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +16,7 @@ import { GradientButton } from "../../components/ui/gradient-button";
 import { TextField } from "../../components/ui/text-field";
 import { useAuth } from "../../context/auth";
 import { colors, fontSize, radii, spacing } from "../../theme";
+import { KeyboardSafeView } from '../../components/ui/keyboard-safe-view';
 
 const HERO_URI =
   "https://images.unsplash.com/photo-1444723121867-7a241cacace9?w=1200&q=75&auto=format&fit=crop";
@@ -75,8 +74,7 @@ export default function SignInScreen() {
       <View style={styles.scrim} />
 
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        <KeyboardSafeView
           style={styles.flex}
         >
           <ScrollView
@@ -143,7 +141,7 @@ export default function SignInScreen() {
               </View>
             </View>
           </ScrollView>
-        </KeyboardAvoidingView>
+        </KeyboardSafeView>
       </SafeAreaView>
     </View>
   );

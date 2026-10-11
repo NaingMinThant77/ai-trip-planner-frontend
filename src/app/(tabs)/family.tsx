@@ -7,6 +7,7 @@ import { GradientHeader } from "../../components/profile/gradient-header";
 import { InviteCodeCard } from "../../components/profile/invite-code-card";
 import { ErrorState, LoadingState } from "../../components/ui/screen-state";
 import { useProfile } from "../../hooks/use-explore";
+import { useUnreadMessages } from "../../hooks/use-chat";
 import { useAddFamilyMember, useFamily } from "../../hooks/use-family";
 import { colors, fontSize, layout, radii, spacing } from "../../theme";
 
@@ -18,6 +19,7 @@ export default function FamilyScreen() {
   const router = useRouter();
   const profile = useProfile();
   const family = useFamily();
+  const unread = useUnreadMessages();
   const addMember = useAddFamilyMember();
 
   // Both queries feed one screen, so they share one loading and one error state.
@@ -88,6 +90,7 @@ export default function FamilyScreen() {
             <FamilyMemberRow
               key={member.id}
               member={member}
+              unreadCount={unread.data?.byPeer[member.userId] ?? 0}
               onPress={() =>
                 router.push({
                   pathname: '/chat/[peerId]',
