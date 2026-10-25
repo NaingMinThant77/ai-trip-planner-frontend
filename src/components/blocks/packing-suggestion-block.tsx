@@ -1,9 +1,16 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, fontSize, radii, spacing } from '../../theme';
-import { PackingSuggestionBlock } from '../../types/blocks';
+import { PackingSuggestionBlock, SaveResult } from '../../types/blocks';
 import { BlockCard } from './block-card';
+import { SaveButton } from './save-button';
 
-export function PackingSuggestionBlockView({ block }: { block: PackingSuggestionBlock }) {
+export function PackingSuggestionBlockView({
+  block,
+  onSave,
+}: {
+  block: PackingSuggestionBlock;
+  onSave?: () => Promise<SaveResult>;
+}) {
   return (
     <BlockCard heading={block.heading}>
       <View style={styles.grid}>
@@ -15,6 +22,7 @@ export function PackingSuggestionBlockView({ block }: { block: PackingSuggestion
           </View>
         ))}
       </View>
+      {onSave ? <SaveButton label="Add to packing list" onSave={onSave} /> : null}
     </BlockCard>
   );
 }

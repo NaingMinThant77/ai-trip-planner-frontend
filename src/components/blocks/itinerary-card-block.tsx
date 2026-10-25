@@ -1,9 +1,16 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, fontSize, spacing, timeOfDayLabel } from '../../theme';
-import { ItineraryCardBlock } from '../../types/blocks';
+import { ItineraryCardBlock, SaveResult } from '../../types/blocks';
 import { BlockCard } from './block-card';
+import { SaveButton } from './save-button';
 
-export function ItineraryCardBlockView({ block }: { block: ItineraryCardBlock }) {
+export function ItineraryCardBlockView({
+  block,
+  onSave,
+}: {
+  block: ItineraryCardBlock;
+  onSave?: () => Promise<SaveResult>;
+}) {
   return (
     <BlockCard heading={`Day ${block.dayNumber} · ${block.title}`}>
       <Text style={styles.summary}>{block.summary}</Text>
@@ -17,6 +24,8 @@ export function ItineraryCardBlockView({ block }: { block: ItineraryCardBlock })
           </View>
         </View>
       ))}
+
+      {onSave ? <SaveButton label={`Save day ${block.dayNumber} to trip`} onSave={onSave} /> : null}
     </BlockCard>
   );
 }

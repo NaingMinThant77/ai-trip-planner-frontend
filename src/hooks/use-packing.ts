@@ -88,14 +88,3 @@ export function useDeletePackingItem(tripId: string) {
     },
   });
 }
-
-export function useGeneratePacking(tripId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: () => packingApi.generatePacking(tripId),
-    onSuccess: (items) => {
-      queryClient.setQueryData(packingKeys.list(tripId), items);
-    },
-  });
-}

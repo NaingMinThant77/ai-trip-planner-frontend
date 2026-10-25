@@ -61,6 +61,32 @@ export type ChoicePromptBlock = {
   choices: { label: string; value: string }[];
 };
 
+/** A whole new trip proposed in chat. "Save trip" creates it (and its days, if present). */
+export type TripSummaryBlock = {
+  type: 'trip_summary';
+  title: string;
+  source: string;
+  destination: string;
+  /** YYYY-MM-DD */
+  startDate: string;
+  /** YYYY-MM-DD */
+  endDate: string;
+  travelers: number;
+  summary: string;
+  /** Rough, model-produced. Never shown as a quote. */
+  budgetText: string | null;
+  highlights: string[];
+  days: {
+    dayNumber: number;
+    title: string;
+    summary: string;
+    items: { timeOfDay: string; title: string; location: string }[];
+  }[];
+};
+
+/** Tappable follow-ups under a reply. Each chip is sent back as the user's next message. */
+export type SuggestionsBlock = { type: 'suggestions'; chips: string[] };
+
 export type UiBlock =
   | TextBlock
   | ItineraryCardBlock
@@ -69,7 +95,31 @@ export type UiBlock =
   | BookingOptionsBlock
   | WeatherBlock
   | MapPreviewBlock
-  | ChoicePromptBlock;
+  | ChoicePromptBlock
+  | TripSummaryBlock
+  | SuggestionsBlock;
+
+/** The blocks that carry a "Save to trip" action — mirrors SAVEABLE_BLOCK_TYPES server-side. */
+export type SaveableBlock =
+  | TripSummaryBlock
+  | ItineraryCardBlock
+  | PackingSuggestionBlock
+  | BookingOptionsBlock;
+
+/** `POST /agent/save` response. `message` is the confirmation shown on the button. */
+export type SaveResult = {
+  kind: SaveableBlock['type'];
+  tripId: string;
+  message: string;
+};
+
+/** Events on the `POST /agent/stream` SSE response. */
+export type AgentStreamEvent =
+  | { event: 'meta'; data: { conversationId: string } }
+  | { event: 'text_delta'; data: { delta: string } }
+  | { event: 'block'; data: { block: UiBlock } }
+  | { event: 'done'; data: AgentReply }
+  | { event: 'error'; data: { message: string } };
 
 export type AgentMessage = {
   id: string;

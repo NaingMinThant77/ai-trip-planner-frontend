@@ -1,9 +1,17 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, fontSize, spacing } from '../../theme';
-import { BookingOptionsBlock } from '../../types/blocks';
+import { BookingOptionsBlock, SaveResult } from '../../types/blocks';
 import { BlockCard } from './block-card';
+import { SaveButton } from './save-button';
 
-export function BookingOptionsBlockView({ block }: { block: BookingOptionsBlock }) {
+export function BookingOptionsBlockView({
+  block,
+  onSaveOption,
+}: {
+  block: BookingOptionsBlock;
+  /** Saves a single option, so each row has its own button. */
+  onSaveOption?: (option: BookingOptionsBlock['options'][number]) => Promise<SaveResult>;
+}) {
   return (
     <BlockCard
       heading={block.heading}
@@ -18,6 +26,9 @@ export function BookingOptionsBlockView({ block }: { block: BookingOptionsBlock 
           </View>
           <Text style={styles.detail}>{option.detail}</Text>
           <Text style={styles.provider}>{option.provider}</Text>
+          {onSaveOption ? (
+            <SaveButton compact label="Save to trip" onSave={() => onSaveOption(option)} />
+          ) : null}
         </View>
       ))}
     </BlockCard>

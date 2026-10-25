@@ -90,8 +90,9 @@ function RootNavigator() {
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="new-trip" options={{ title: 'New trip', presentation: 'modal' }} />
+      <Stack.Screen name="edit-trip" options={{ title: 'Edit trip', presentation: 'modal' }} />
       <Stack.Screen name="explore" options={{ title: 'Explore' }} />
-      <Stack.Screen name="agent" options={{ title: 'Trip assistant' }} />
+      <Stack.Screen name="agent" options={{ headerShown: false }} />
       <Stack.Screen name="trip/[id]" options={{ title: 'Trip' }} />
       <Stack.Screen name="chat/[peerId]" options={{ title: 'Chat' }} />
       <Stack.Screen name="travel-profile" options={{ title: 'Travel profile' }} />

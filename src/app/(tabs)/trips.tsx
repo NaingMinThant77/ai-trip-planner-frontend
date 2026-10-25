@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '../../api/client';
 import { TripRowCard } from '../../components/trips/trip-row-card';
 import { ErrorState, LoadingState } from '../../components/ui/screen-state';
 import { TripPhase, tripPhase } from '../../lib/trip-status';
-import { useTrips } from '../../hooks/use-trips';
+import { useDeleteTrip, useTrips } from '../../hooks/use-trips';
 import { colors, fontSize, gradients, layout, radii, spacing } from '../../theme';
 import { TripListItem } from '../../types/api';
 
@@ -15,6 +15,7 @@ export default function MyTripsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const trips = useTrips();
+  const deleteTrip = useDeleteTrip();
 
   if (trips.isPending) return <LoadingState label="Loading your trips…" />;
 
@@ -36,6 +37,28 @@ export default function MyTripsScreen() {
       ? b.startDate.localeCompare(a.startDate)
       : a.startDate.localeCompare(b.startDate);
   });
+
+  function confirmDelete(trip: TripListItem): void {
+    Alert.alert(
+      `Delete "${trip.title}"?`,
+      'This permanently removes the trip with its itinerary, packing list, bookings and photos.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () =>
+            deleteTrip.mutate(trip.id, {
+              onError: (caught) =>
+                Alert.alert(
+                  'Could not delete',
+                  caught instanceof ApiError ? caught.message : 'Please try again.',
+                ),
+            }),
+        },
+      ],
+    );
+  }
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + spacing.lg }]}>
@@ -75,7 +98,12 @@ export default function MyTripsScreen() {
           </Pressable>
         }
         renderItem={({ item }) => (
-          <TripRowCard trip={item} onPress={() => router.push(`/trip/${item.id}`)} />
+          <TripRowCard
+            trip={item}
+            onPress={() => router.push(`/trip/${item.id}`)}
+            onEdit={() => router.push({ pathname: '/edit-trip', params: { id: item.id } })}
+            onDelete={() => confirmDelete(item)}
+          />
         )}
       />
     </View>

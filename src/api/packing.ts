@@ -26,9 +26,3 @@ export async function updatePackingItem(
 export async function deletePackingItem(tripId: string, itemId: string): Promise<void> {
   await api.delete(`/trips/${tripId}/packing/${itemId}`);
 }
-
-/** AI-seeds the list. Keeps user-added and already-packed items. */
-export async function generatePacking(tripId: string): Promise<PackingItem[]> {
-  const { data } = await api.post<PackingItem[]>(`/trips/${tripId}/packing/generate`);
-  return data;
-}

@@ -1,4 +1,4 @@
-import { CreateTripInput, Trip, TripDetail, TripListItem } from '../types/api';
+import { CreateTripInput, Trip, TripDetail, TripListItem, UpdateTripInput } from '../types/api';
 import { api } from './client';
 
 export async function listTrips(): Promise<TripListItem[]> {
@@ -13,6 +13,11 @@ export async function getTrip(id: string): Promise<TripDetail> {
 
 export async function createTrip(input: CreateTripInput): Promise<Trip> {
   const { data } = await api.post<Trip>('/trips', input);
+  return data;
+}
+
+export async function updateTrip(id: string, input: UpdateTripInput): Promise<Trip> {
+  const { data } = await api.patch<Trip>(`/trips/${id}`, input);
   return data;
 }
 

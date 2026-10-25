@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as agentApi from '../api/agent';
-import { AgentMessage } from '../types/blocks';
+import { TripListItem } from '../types/api';
+import { SaveableBlock } from '../types/blocks';
+import { tripKeys } from './use-trips';
+
+/** Every 8s for ~2 minutes: the free image generator is slow and sometimes retries internally. */
+const COVER_POLL_MS = 8_000;
+const COVER_POLL_LIMIT = 15;
 
 export const agentKeys = {
   conversations: ['agent', 'conversations'] as const,
@@ -20,48 +26,39 @@ export function useMessages(conversationId: string | null) {
 }
 
 /**
- * Appends the user's turn to the cache immediately — the model reply takes seconds, and the
- * message disappearing from the thread in the meantime feels broken.
+ * "Save to trip". A saved card can change a trip, its days, packing or bookings, so every
+ * non-agent query is refreshed rather than guessing which screens are showing stale data.
  */
-export function useSendMessage(conversationId: string | null, tripId?: string) {
+export function useSaveBlock() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (message: string) =>
-      agentApi.sendMessage({
-        message,
-        conversationId: conversationId ?? undefined,
-        tripId,
-      }),
+    mutationFn: (input: { tripId?: string; conversationId?: string; block: SaveableBlock }) => agentApi.saveBlock(input),
+    onSuccess: (result) => {
+      const refresh = () =>
+        void queryClient.invalidateQueries({
+          predicate: (query) => query.queryKey[0] !== 'agent',
+        });
+      refresh();
+      // The chat is now attached to the trip; the conversation list has to know.
+      if (result.kind === 'trip_summary') {
+        void queryClient.invalidateQueries({ queryKey: agentKeys.conversations });
+      }
 
-    onMutate: (message) => {
-      if (!conversationId) return;
-
-      const key = agentKeys.messages(conversationId);
-      const optimistic: AgentMessage = {
-        id: `pending-${Date.now()}`,
-        role: 'user',
-        text: message,
-        blocks: [],
-        createdAt: new Date().toISOString(),
-      };
-
-      queryClient.setQueryData<AgentMessage[]>(key, (messages) => [
-        ...(messages ?? []),
-        optimistic,
-      ]);
-    },
-
-    onSuccess: (reply) => {
-      // Refetch rather than splice: the server also persisted the user turn, and the
-      // optimistic copy has a placeholder id.
-      void queryClient.invalidateQueries({ queryKey: agentKeys.messages(reply.conversationId) });
-      void queryClient.invalidateQueries({ queryKey: agentKeys.conversations });
-    },
-
-    onError: () => {
-      if (conversationId) {
-        void queryClient.invalidateQueries({ queryKey: agentKeys.messages(conversationId) });
+      // A new trip's cover is generated in the background and can take a minute or more, so keep
+      // checking until it lands (or we give up) rather than relying on a fixed couple of tries.
+      if (result.kind === 'trip_summary') {
+        let checks = 0;
+        const timer = setInterval(() => {
+          checks += 1;
+          const trips = queryClient.getQueryData<TripListItem[]>(tripKeys.all);
+          const hasCover = trips?.find((t) => t.id === result.tripId)?.coverImageUrl;
+          if (hasCover || checks > COVER_POLL_LIMIT) {
+            clearInterval(timer);
+            return;
+          }
+          refresh();
+        }, COVER_POLL_MS);
       }
     },
   });

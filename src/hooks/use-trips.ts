@@ -1,7 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as itineraryApi from '../api/itinerary';
 import * as tripsApi from '../api/trips';
-import { CreateActivityInput, CreateTripInput, Trip, TripDetail, UpdateActivityInput } from '../types/api';
+import {
+  CreateActivityInput,
+  CreateTripInput,
+  Trip,
+  TripDetail,
+  UpdateActivityInput,
+  UpdateTripInput,
+} from '../types/api';
 
 export const tripKeys = {
   all: ['trips'] as const,
@@ -32,6 +39,19 @@ export function useCreateTrip() {
   });
 }
 
+export function useUpdateTrip(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateTripInput) => tripsApi.updateTrip(id, input),
+    onSuccess: () => {
+      // Dates can move the itinerary's days too, so the detail is refetched, not patched.
+      void queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      void queryClient.invalidateQueries({ queryKey: tripKeys.detail(id) });
+    },
+  });
+}
+
 export function useDeleteTrip() {
   const queryClient = useQueryClient();
 
@@ -40,31 +60,6 @@ export function useDeleteTrip() {
     onSuccess: (_result, id) => {
       queryClient.removeQueries({ queryKey: tripKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: tripKeys.all });
-    },
-  });
-}
-
-/** Slow (10-30s). Callers must render a real pending state, not a spinner over the whole screen. */
-export function useGenerateItinerary(tripId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: () => itineraryApi.generateItinerary(tripId),
-    onSuccess: (trip: TripDetail) => {
-      queryClient.setQueryData(tripKeys.detail(tripId), trip);
-      void queryClient.invalidateQueries({ queryKey: tripKeys.all });
-    },
-  });
-}
-
-export function useRegenerateDay(tripId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (input: { dayNumber: number; feedback?: string }) =>
-      itineraryApi.regenerateDay(tripId, input.dayNumber, input.feedback),
-    onSuccess: (trip: TripDetail) => {
-      queryClient.setQueryData(tripKeys.detail(tripId), trip);
     },
   });
 }

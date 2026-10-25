@@ -1,4 +1,4 @@
-import { AgentConversation, AgentMessage, AgentReply } from '../types/blocks';
+import { AgentConversation, AgentMessage, SaveableBlock, SaveResult } from '../types/blocks';
 import { api } from './client';
 
 export async function listConversations(): Promise<AgentConversation[]> {
@@ -13,11 +13,11 @@ export async function listMessages(conversationId: string): Promise<AgentMessage
   return data;
 }
 
-export async function sendMessage(input: {
-  message: string;
-  conversationId?: string;
+export async function saveBlock(input: {
   tripId?: string;
-}): Promise<AgentReply> {
-  const { data } = await api.post<AgentReply>('/agent/messages', input);
+  conversationId?: string;
+  block: SaveableBlock;
+}): Promise<SaveResult> {
+  const { data } = await api.post<SaveResult>('/agent/save', input);
   return data;
 }

@@ -134,6 +134,11 @@ export type CreateTripInput = {
   notes?: string;
 };
 
+/** `PATCH /trips/:id`. Every field is optional; an omitted field is left as it is. */
+export type UpdateTripInput = Partial<Omit<CreateTripInput, 'coverImageUrl'>> & {
+  coverImageUrl?: string;
+};
+
 export type UploadedCoverImage = {
   url: string;
   publicId: string;
