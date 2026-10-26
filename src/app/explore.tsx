@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ApiError } from '../api/client';
@@ -11,8 +11,9 @@ import { Destination } from '../types/api';
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ region?: string }>();
   const [query, setQuery] = useState('');
-  const [region, setRegion] = useState('');
+  const [region, setRegion] = useState(params.region ?? '');
 
   const regions = useRegions();
   const destinations = useDestinations(query, region);
@@ -79,7 +80,7 @@ export default function ExploreScreen() {
                   ? suggestions.data?.find((s) => s.id === item.id)?.reason ?? null
                   : null
               }
-              onPress={() => router.push('/new-trip')}
+              onPress={() => router.push(`/destination/${item.slug}`)}
             />
           )}
         />

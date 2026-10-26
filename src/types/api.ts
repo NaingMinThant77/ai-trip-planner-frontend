@@ -267,9 +267,30 @@ export type Destination = {
   dailyBudgetText: string | null;
 };
 
+export type GuideItem = { title: string; blurb: string; imageUrl: string | null };
+
+/** Blog-style guide on the destination screen. Editorial and indicative — no prices or hours. */
+export type DestinationGuide = {
+  intro: string;
+  places: GuideItem[];
+  restaurants: GuideItem[];
+  culture: GuideItem[];
+  food: GuideItem[];
+  stay: GuideItem[];
+  packing: string[];
+  photoCredit: string;
+};
+
+export type DestinationDetail = Destination & { guide: DestinationGuide };
+
 export type Suggestion = Destination & {
   reason: string;
   score: number;
+};
+
+export type TrendingDestination = Destination & {
+  tripCount: number;
+  inSeason: boolean;
 };
 
 export type UnreadSummary = {

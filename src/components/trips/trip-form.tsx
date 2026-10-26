@@ -53,6 +53,8 @@ type Props = {
   mode: 'create' | 'edit';
   /** Present in edit mode. Dates are ISO strings from the API. */
   initial?: TripFormInitial;
+  /** Pre-fills the destination on a new trip, e.g. when arriving from an Explore card. */
+  presetDestination?: string;
   submitLabel: string;
   isPending: boolean;
   /** An error from the server, shown under the form. */
@@ -65,14 +67,22 @@ type Props = {
  * edit keeps the existing cover unless it is replaced and allows dates already in the past, since
  * a trip that is under way still has to be editable.
  */
-export function TripForm({ mode, initial, submitLabel, isPending, serverError, onSubmit }: Props) {
+export function TripForm({
+  mode,
+  initial,
+  presetDestination,
+  submitLabel,
+  isPending,
+  serverError,
+  onSubmit,
+}: Props) {
   const isEdit = mode === 'edit';
   const uploadCover = useUploadTripCover();
   const generateCover = useGenerateTripCover();
 
   const [title, setTitle] = useState(initial?.title ?? '');
   const [source, setSource] = useState(initial?.source ?? '');
-  const [destination, setDestination] = useState(initial?.destination ?? '');
+  const [destination, setDestination] = useState(initial?.destination ?? presetDestination ?? '');
   const [startDate, setStartDate] = useState(() =>
     initial ? parseCalendarDate(initial.startDate) : addDays(new Date(), 30),
   );

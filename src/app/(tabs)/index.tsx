@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '../../api/client';
 import { AskBar } from '../../components/home/ask-bar';
+import { ExploreSections } from '../../components/home/explore-sections';
 import { FinishPlanningCard } from '../../components/home/finish-planning-card';
 import { QuickTool, QuickTools } from '../../components/home/quick-tools';
 import { Segmented } from '../../components/home/segmented';
@@ -14,7 +15,7 @@ import { TripPlanCard } from '../../components/trips/trip-plan-card';
 import { ErrorState, LoadingState } from '../../components/ui/screen-state';
 import { useAuth } from '../../context/auth';
 import { nextPlanningStep, tripNeedingAttention, tripPhase } from '../../lib/trip-status';
-import { useProfile, useSuggestions } from '../../hooks/use-explore';
+import { useDestinations, useProfile, useSuggestions, useTrending } from '../../hooks/use-explore';
 import { useTrips } from '../../hooks/use-trips';
 import { colors, fontSize, layout, radii, spacing } from '../../theme';
 
@@ -30,6 +31,8 @@ export default function HomeScreen() {
   const trips = useTrips();
   const profile = useProfile();
   const suggestions = useSuggestions();
+  const destinations = useDestinations('', '');
+  const trending = useTrending();
   const [tab, setTab] = useState<HomeTab>('plan');
 
   if (trips.isPending) return <LoadingState label="Loading your trips…" />;
@@ -98,8 +101,7 @@ export default function HomeScreen() {
     <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]}>
       <View style={styles.header}>
         <Text style={styles.greeting}>
-          Let&apos;s plan your next{'\n'}adventures{' '}
-          <Text style={styles.greetingMark}>!</Text>
+          Let&apos;s plan your next{'\n'}adventures <Text style={styles.greetingMark}>!</Text>
         </Text>
         <Pressable
           accessibilityRole="button"
@@ -165,65 +167,58 @@ export default function HomeScreen() {
         renderExplore()
       )}
 
-      <Text style={styles.sectionTitle}>Quick tools</Text>
-      <QuickTools tools={quickTools} />
-
-      {attention && attentionStep ? (
+      {tab === 'plan' ? (
         <View>
-          <Text style={styles.sectionTitle}>Finish planning</Text>
-          <FinishPlanningCard
-            trip={attention}
-            nextStep={attentionStep}
-            onContinue={() => router.push(`/trip/${attention.id}`)}
-            onAskAi={() => router.push({ pathname: '/agent', params: { tripId: attention.id } })}
-          />
+          <Text style={styles.sectionTitle}>Quick tools</Text>
+          <QuickTools tools={quickTools} />
+
+          {attention && attentionStep ? (
+            <View>
+              <Text style={styles.sectionTitle}>Finish planning</Text>
+              <FinishPlanningCard
+                trip={attention}
+                nextStep={attentionStep}
+                onContinue={() => router.push(`/trip/${attention.id}`)}
+                onAskAi={() =>
+                  router.push({ pathname: '/agent', params: { tripId: attention.id } })
+                }
+              />
+            </View>
+          ) : null}
+
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, styles.sectionTitleFlush]}>Travel tips</Text>
+            <Ionicons name="bulb-outline" size={16} color={colors.accent} />
+          </View>
+          <TravelTips onAsk={() => openAssistant()} />
         </View>
       ) : null}
-
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, styles.sectionTitleFlush]}>Travel tips</Text>
-        <Ionicons name="bulb-outline" size={16} color={colors.accent} />
-      </View>
-      <TravelTips onAsk={() => openAssistant()} />
     </ScrollView>
   );
 
-  /**
-   * The suggestion carousel, unchanged from the previous Home — this is the Explore card the
-   * design already had, moved behind the tab rather than restyled.
-   */
+  /** Search, trending, best time to go, interests, regions, picks — then the full catalogue. */
   function renderExplore() {
-    if (suggestions.isPending) {
+    if (suggestions.isPending || destinations.isPending || trending.isPending) {
       return <Text style={styles.hint}>Finding places you might like…</Text>;
     }
-    if (suggestions.isError) {
-      return <Text style={styles.hint}>Suggestions are unavailable right now.</Text>;
+    if (suggestions.isError && destinations.isError && trending.isError) {
+      return <Text style={styles.hint}>Destinations are unavailable right now.</Text>;
     }
-    if (suggestions.data.length === 0) {
-      return (
-        <Text style={styles.hint}>
-          Add a few interests in your travel profile and suggestions will show up here.
-        </Text>
-      );
-    }
+
+    const month = new Date().getMonth() + 1;
+    const inSeason = (destinations.data ?? []).filter((d) => d.bestMonths.includes(month));
 
     return (
       <View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carousel}>
-          {suggestions.data.slice(0, 6).map((suggestion) => (
-            <Pressable
-              key={suggestion.id}
-              style={styles.suggestion}
-              onPress={() => router.push('/explore')}
-            >
-              <Text style={styles.suggestionName}>{suggestion.name}</Text>
-              <Text style={styles.suggestionCountry}>{suggestion.country}</Text>
-              <Text style={styles.suggestionReason} numberOfLines={3}>
-                {suggestion.reason}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+        <ExploreSections
+          picks={(suggestions.data ?? []).slice(0, 6)}
+          inSeason={inSeason.slice(0, 8)}
+          trending={trending.data ?? []}
+          destinations={destinations.data ?? []}
+          onSearch={() => router.push('/explore')}
+          onRegion={(region) => router.push({ pathname: '/explore', params: { region } })}
+          onOpen={(destination) => router.push(`/destination/${destination.slug}`)}
+        />
 
         <Pressable
           accessibilityRole="button"
@@ -249,7 +244,13 @@ function rank(trip: { startDate: string; endDate: string }): number {
 const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingBottom: layout.tabBarClearance },
   header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.lg },
-  greeting: { flex: 1, fontSize: fontSize.xl, fontWeight: '700', color: colors.text, lineHeight: 34 },
+  greeting: {
+    flex: 1,
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+    color: colors.text,
+    lineHeight: 34,
+  },
   greetingMark: { color: colors.brand },
   avatar: {
     width: 42,
@@ -308,20 +309,4 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   hint: { fontSize: fontSize.sm, color: colors.textMuted },
-  carousel: { marginHorizontal: -spacing.lg, paddingHorizontal: spacing.lg },
-  suggestion: {
-    width: 200,
-    backgroundColor: colors.background,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    marginRight: spacing.md,
-  },
-  suggestionName: { fontSize: fontSize.md, fontWeight: '700', color: colors.text },
-  suggestionCountry: { fontSize: fontSize.xs, color: colors.brandDark, marginTop: 1 },
-  suggestionReason: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    marginTop: spacing.sm,
-    lineHeight: 17,
-  },
 });

@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ApiError } from '../api/client';
 import { TripForm } from '../components/trips/trip-form';
@@ -6,12 +6,14 @@ import { useCreateTrip } from '../hooks/use-trips';
 
 export default function NewTripScreen() {
   const router = useRouter();
+  const { destination } = useLocalSearchParams<{ destination?: string }>();
   const createTrip = useCreateTrip();
   const [error, setError] = useState<string | null>(null);
 
   return (
     <TripForm
       mode="create"
+      presetDestination={destination}
       submitLabel="Save Trip"
       isPending={createTrip.isPending}
       serverError={error}

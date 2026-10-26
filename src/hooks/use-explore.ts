@@ -6,6 +6,8 @@ export const exploreKeys = {
   destinations: (q: string, region: string) => ['destinations', q, region] as const,
   regions: ['regions'] as const,
   suggestions: ['suggestions'] as const,
+  trending: ['trending'] as const,
+  destination: (slug: string) => ['destination', slug] as const,
   profile: ['profile'] as const,
 };
 
@@ -13,6 +15,15 @@ export function useDestinations(q: string, region: string) {
   return useQuery({
     queryKey: exploreKeys.destinations(q, region),
     queryFn: () => exploreApi.listDestinations({ q: q || undefined, region: region || undefined }),
+  });
+}
+
+export function useDestination(slug: string) {
+  return useQuery({
+    queryKey: exploreKeys.destination(slug),
+    queryFn: () => exploreApi.getDestination(slug),
+    // The guide is seeded editorial content; it does not change while the app is open.
+    staleTime: Infinity,
   });
 }
 
@@ -26,6 +37,10 @@ export function useRegions() {
 
 export function useSuggestions() {
   return useQuery({ queryKey: exploreKeys.suggestions, queryFn: exploreApi.listSuggestions });
+}
+
+export function useTrending() {
+  return useQuery({ queryKey: exploreKeys.trending, queryFn: exploreApi.listTrending });
 }
 
 export function useProfile() {
