@@ -1,56 +1,92 @@
-# Welcome to your Expo app 👋
+# AI Trip Planner — Frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Mobile app (iOS / Android / web) for planning trips with an AI assistant, built with Expo and React Native.
 
-## Get started
+## Screens
 
-1. Install dependencies
+Design mockups for the main flows:
 
-   ```bash
-   npm install
-   ```
+| AI Agent chat | Home & Add trip | Family trip sharing |
+| --- | --- | --- |
+| ![AI Agent chat](docs/screenshots/ai-agent-chat.png) | ![Home and add trip](docs/screenshots/home-and-add-trip.png) | ![Family trip sharing](docs/screenshots/family-trip-share.png) |
 
-2. Start the app
+## Tech stack
 
-   ```bash
-   npx expo start
-   ```
+- **Expo SDK 57**, React Native 0.86, React 19
+- **expo-router** — file-based routing
+- **TanStack React Query** + **Axios** — data fetching
+- **socket.io-client** — real-time messaging
+- **react-native-maps**, **expo-image**, **expo-image-picker**, **expo-secure-store**, Reanimated
 
-In the output, you'll find options to open the app in a
+## Project structure
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+src/
+  app/         Routes (expo-router)
+    (auth)/        Sign in / sign up
+    (onboarding)/  First-run onboarding
+    (tabs)/        Main tab screens
+    trip/, destination/, chat/, agent.tsx, explore.tsx,
+    new-trip.tsx, edit-trip.tsx, account.tsx, travel-profile.tsx
+  api/         API client and endpoints
+  components/  Shared UI components
+  context/     React context providers (e.g. auth)
+  hooks/       Custom hooks
+  lib/         Utilities
+  types/       TypeScript types
+  theme.ts     Design tokens
+scripts/       oauth-bridge.mjs, reset-project.js
+assets/        Images and fonts
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Getting started
 
-### Other setup steps
+### Prerequisites
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- Node.js 20+ and npm
+- The [backend](../backend/README.md) running locally
+- Expo Go, an Android emulator, or an iOS simulator
 
-## Learn more
+### Setup
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npm install
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Create `frontend/.env`:
 
-## Join the community
+```bash
+EXPO_PUBLIC_API_URL=http://<your-lan-ip>:3000/api
+```
 
-Join our community of developers creating universal apps.
+Use your machine's LAN IP for a physical device (not `localhost`). For an Android emulator use `http://10.0.2.2:3000/api`.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Run
+
+```bash
+npm start            # Expo Go
+npm run android
+npm run ios
+npm run web
+npm run start:dev-build   # development build (dev client)
+```
+
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm start` | Start Expo (Expo Go) |
+| `npm run android` / `ios` / `web` | Start on a specific platform |
+| `npm run start:dev-build` | Start with a dev client |
+| `npm run lint` | Lint with `expo lint` |
+| `npm run oauth:bridge` | `adb reverse tcp:3000 tcp:3000` for Google sign-in on Android |
+| `npm run reset-project` | Reset to a blank Expo starter (destructive) |
+
+## Google sign-in
+
+The app uses the URL scheme `aitripplanner://`. The backend handles the OAuth code flow and redirects back to the app.
+
+- **Android (USB/emulator):** run `npm run oauth:bridge` so the device's `localhost:3000` reaches the backend.
+- **iPhone / other devices:** use an https tunnel for the backend and point `EXPO_PUBLIC_API_URL` at `<tunnel>/api`.
+
+See the [backend README](../backend/README.md#google-sign-in-on-a-device) for the full setup.
