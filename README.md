@@ -89,4 +89,21 @@ The app uses the URL scheme `wayfarer://`. The backend handles the OAuth code fl
 - **Android (USB/emulator):** run `npm run oauth:bridge` so the device's `localhost:3000` reaches the backend.
 - **iPhone / other devices:** use an https tunnel for the backend and point `EXPO_PUBLIC_API_URL` at `<tunnel>/api`.
 
+- **Release builds (APK):** the backend's `OAUTH_PUBLIC_URL` must be the deployed https URL, and `OAUTH_ALLOWED_REDIRECTS` must be `wayfarer://`. The scheme in `app.json` must match.
+
 See the [backend README](../backend/README.md#google-sign-in-on-a-device) for the full setup.
+
+## Building an APK
+
+Builds run in Expo's cloud (EAS) from the committed git repo.
+
+1. Set `EXPO_PUBLIC_API_URL` in `eas.json` (`build.preview.env`) to `https://<service>.onrender.com/api`. `.env` is not read by cloud builds, and the value is baked into the app.
+2. Commit your changes.
+3. Build:
+   ```bash
+   npx eas-cli login
+   npx eas-cli build -p android --profile preview   # installable .apk
+   ```
+4. `--profile production` builds an `.aab` for Google Play.
+
+Any change to `src/` needs a new build; backend changes do not. Native Android map tiles need a Google Maps API key in `app.json` (`android.config.googleMaps.apiKey`).
