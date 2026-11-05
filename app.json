@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "AI Trip Planner",
-    "slug": "ai-trip-planner",
+    "name": "Wayfarer",
+    "slug": "wayfarer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "aitripplanner",
+    "scheme": "wayfarer",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/images/icon.png",
       "supportsTablet": true
     },
     "android": {
-      "package": "com.naingminthant.aitripplanner",
+      "package": "com.naingminthant.wayfarer",
       "adaptiveIcon": {
         "backgroundColor": "#EAF4FF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

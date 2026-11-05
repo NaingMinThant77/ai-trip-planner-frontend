@@ -1,4 +1,4 @@
-# AI Trip Planner — Frontend
+# Wayfarer — Frontend (AI Trip Planner)
 
 Mobile app (iOS / Android / web) for planning trips with an AI assistant, built with Expo and React Native.
 
@@ -84,7 +84,7 @@ npm run start:dev-build   # development build (dev client)
 
 ## Google sign-in
 
-The app uses the URL scheme `aitripplanner://`. The backend handles the OAuth code flow and redirects back to the app.
+The app uses the URL scheme `wayfarer://`. The backend handles the OAuth code flow and redirects back to the app.
 
 - **Android (USB/emulator):** run `npm run oauth:bridge` so the device's `localhost:3000` reaches the backend.
 - **iPhone / other devices:** use an https tunnel for the backend and point `EXPO_PUBLIC_API_URL` at `<tunnel>/api`.
