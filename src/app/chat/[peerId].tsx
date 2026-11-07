@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import {
@@ -22,7 +23,7 @@ import { Message } from '../../types/api';
 import { KeyboardSafeView } from '../../components/ui/keyboard-safe-view';
 
 export default function ChatScreen() {
-  const params = useLocalSearchParams<{ peerId: string; name?: string; memberId?: string }>();
+  const params = useLocalSearchParams<{ peerId: string; name?: string; memberId?: string; avatarUrl?: string }>();
   const peerId = params.peerId ?? '';
   const peerName = params.name ?? 'Chat';
   const memberId = params.memberId;
@@ -37,15 +38,27 @@ export default function ChatScreen() {
 
   function handleRemoveMember(): void {
     if (!memberId || removeMember.isPending) return;
-    removeMember.mutate(memberId, {
-      onSuccess: () => router.back(),
-      onError: (error) => {
-        Alert.alert(
-          'Could not remove',
-          error instanceof ApiError ? error.message : 'Please try again.',
-        );
-      },
-    });
+    Alert.alert(
+      'Unfriend',
+      `Are you sure you want to unfriend ${peerName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unfriend',
+          style: 'destructive',
+          onPress: () =>
+            removeMember.mutate(memberId, {
+              onSuccess: () => router.back(),
+              onError: (error) => {
+                Alert.alert(
+                  'Could not remove',
+                  error instanceof ApiError ? error.message : 'Please try again.',
+                );
+              },
+            }),
+        },
+      ],
+    );
   }
 
   const messages = thread.data ?? [];
@@ -82,9 +95,13 @@ export default function ChatScreen() {
         options={{
           headerTitle: () => (
             <View style={styles.headerTitle}>
-              <View style={styles.headerAvatar}>
-                <Text style={styles.headerAvatarText}>{initialsOf(peerName)}</Text>
-              </View>
+              {params.avatarUrl ? (
+                <Image source={{ uri: params.avatarUrl }} style={styles.headerAvatar} contentFit="cover" />
+              ) : (
+                <View style={styles.headerAvatar}>
+                  <Text style={styles.headerAvatarText}>{initialsOf(peerName)}</Text>
+                </View>
+              )}
               <Text style={styles.headerName} numberOfLines={1}>
                 {peerName}
               </Text>
@@ -182,7 +199,7 @@ function Bubble({ message, isMine }: { message: Message; isMine: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  headerTitle: { alignItems: 'center' },
+  headerTitle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerAvatar: {
     width: 32,
     height: 32,
@@ -190,7 +207,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
   },
   headerAvatarText: { color: colors.brandDark, fontWeight: '700', fontSize: fontSize.xs },
   headerName: { fontSize: fontSize.md, fontWeight: '700', color: colors.text, maxWidth: 180 },

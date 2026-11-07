@@ -57,7 +57,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="family"
         options={{
-          title: 'Family',
+          title: 'Members',
           tabBarBadge: unreadTotal > 0 ? (unreadTotal > 99 ? '99+' : unreadTotal) : undefined,
           tabBarBadgeStyle: styles.badge,
           tabBarIcon: renderIcon('people-outline', 'people'),

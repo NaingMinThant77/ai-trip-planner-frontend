@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import { FamilyMember } from '../../types/api';
@@ -21,9 +22,19 @@ export function FamilyMemberRow({ member, onPress, unreadCount = 0 }: Props) {
       disabled={!onPress}
       style={({ pressed }) => [styles.row, onPress && pressed && styles.rowPressed]}
     >
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{initialsOf(member.name)}</Text>
-      </View>
+      {member.avatarUrl ? (
+        <Image
+          source={{ uri: member.avatarUrl }}
+          style={styles.avatar}
+          contentFit="cover"
+          transition={150}
+          accessibilityLabel={`${member.name}'s profile photo`}
+        />
+      ) : (
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initialsOf(member.name)}</Text>
+        </View>
+      )}
       <View style={styles.text}>
         <Text style={styles.name}>{member.name}</Text>
         <Text style={styles.email} numberOfLines={1}>

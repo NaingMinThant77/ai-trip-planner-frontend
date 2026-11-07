@@ -53,6 +53,7 @@ export type FamilyMember = {
   userId: string;
   name: string;
   email: string;
+  avatarUrl: string | null;
   addedAt: string;
 };
 

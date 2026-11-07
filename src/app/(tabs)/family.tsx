@@ -24,14 +24,14 @@ export default function FamilyScreen() {
 
   // Both queries feed one screen, so they share one loading and one error state.
   if (profile.isPending || family.isPending)
-    return <LoadingState label="Loading your family…" />;
+    return <LoadingState label="Loading your members…" />;
 
   if (profile.isError || family.isError) {
     return (
       <ErrorState
         message={messageOf(
           profile.error ?? family.error,
-          "Could not load your family list.",
+          "Could not load your members list.",
         )}
         onRetry={() => {
           void profile.refetch();
@@ -44,7 +44,7 @@ export default function FamilyScreen() {
   async function handleAdd(code: string): Promise<void> {
     try {
       const member = await addMember.mutateAsync(code);
-      Alert.alert("Added", `${member.name} is now in your family.`);
+      Alert.alert("Added", `${member.name} is now in your members list.`);
     } catch (error) {
       // Rethrown as nothing: the alert is the whole report, and `AddByCode` keeps the
       // typed code on screen so it can be corrected rather than retyped.
@@ -61,7 +61,7 @@ export default function FamilyScreen() {
   return (
     <View style={styles.screen}>
       <GradientHeader
-        title="Family"
+        title="Members"
         subtitle={
           members.length === 0
             ? "Nobody added yet"
@@ -73,7 +73,7 @@ export default function FamilyScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* <InviteCodeCard code={profile.data.inviteCode} /> */}
 
-        <Text style={styles.sectionTitle}>Family members</Text>
+        <Text style={styles.sectionTitle}>Members</Text>
         <Text style={styles.sectionBody}>
           Add someone once with their invite code, then share any trip with
           them.
@@ -83,7 +83,7 @@ export default function FamilyScreen() {
 
         {members.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No family members yet</Text>
+            <Text style={styles.emptyText}>No members yet</Text>
           </View>
         ) : (
           members.map((member) => (
@@ -94,7 +94,12 @@ export default function FamilyScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/chat/[peerId]',
-                  params: { peerId: member.userId, name: member.name, memberId: member.id },
+                  params: {
+                    peerId: member.userId,
+                    name: member.name,
+                    memberId: member.id,
+                    ...(member.avatarUrl ? { avatarUrl: member.avatarUrl } : {}),
+                  },
                 })
               }
             />
