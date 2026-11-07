@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import {
@@ -20,6 +21,7 @@ import { initialsOf } from '../../components/profile/gradient-header';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import { ErrorState, LoadingState } from '../../components/ui/screen-state';
 import { Message } from '../../types/api';
+import { confirmAction } from '../../components/ui/confirm-host';
 import { KeyboardSafeView } from '../../components/ui/keyboard-safe-view';
 
 export default function ChatScreen() {
@@ -34,34 +36,30 @@ export default function ChatScreen() {
   const sendMessage = useSendMessage(peerId);
   const removeMember = useRemoveFamilyMember();
   const [draft, setDraft] = useState('');
-  const listRef = useRef<FlatList<Message>>(null);
+  const listRef = useRef<FlatList<Row>>(null);
 
   function handleRemoveMember(): void {
     if (!memberId || removeMember.isPending) return;
-    Alert.alert(
-      'Unfriend',
-      `Are you sure you want to unfriend ${peerName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Unfriend',
-          style: 'destructive',
-          onPress: () =>
-            removeMember.mutate(memberId, {
-              onSuccess: () => router.back(),
-              onError: (error) => {
-                Alert.alert(
-                  'Could not remove',
-                  error instanceof ApiError ? error.message : 'Please try again.',
-                );
-              },
-            }),
-        },
-      ],
-    );
+    confirmAction({
+      title: 'Unfriend?',
+      message: `Are you sure you want to unfriend ${peerName}?`,
+      confirmLabel: 'Unfriend',
+      icon: 'person-remove',
+      onConfirm: () =>
+        removeMember.mutate(memberId, {
+          onSuccess: () => router.back(),
+          onError: (error) => {
+            Alert.alert(
+              'Could not remove',
+              error instanceof ApiError ? error.message : 'Please try again.',
+            );
+          },
+        }),
+    });
   }
 
   const messages = thread.data ?? [];
+  const rows = withDaySeparators(messages);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -134,11 +132,17 @@ export default function ChatScreen() {
         ) : (
           <FlatList
             ref={listRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
+            data={rows}
+            keyExtractor={(item) => item.key}
             contentContainerStyle={styles.list}
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-            renderItem={({ item }) => <Bubble message={item} isMine={item.senderId === user?.id} />}
+            renderItem={({ item }) =>
+              item.type === 'day' ? (
+                <DaySeparator label={item.label} />
+              ) : (
+                <Bubble message={item.message} isMine={item.message.senderId === user?.id} />
+              )
+            }
           />
         )}
 
@@ -172,28 +176,89 @@ export default function ChatScreen() {
   );
 }
 
+type Row =
+  | { type: 'day'; key: string; label: string }
+  | { type: 'message'; key: string; message: Message };
+
+/** Inserts a "Today / Yesterday / Saturday, 7 Nov" divider whenever the calendar day changes. */
+function withDaySeparators(messages: Message[]): Row[] {
+  const rows: Row[] = [];
+  let lastDay = '';
+  for (const message of messages) {
+    const date = new Date(message.createdAt);
+    const day = date.toDateString();
+    if (day !== lastDay) {
+      rows.push({ type: 'day', key: `day-${day}`, label: dayLabel(date) });
+      lastDay = day;
+    }
+    rows.push({ type: 'message', key: message.id, message });
+  }
+  return rows;
+}
+
+function dayLabel(date: Date): string {
+  const now = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === now.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  const sameYear = date.getFullYear() === now.getFullYear();
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
+}
+
+function DaySeparator({ label }: { label: string }) {
+  return (
+    <View style={styles.dayRow}>
+      <View style={styles.dayLine} />
+      <Text style={styles.dayLabel}>{label}</Text>
+      <View style={styles.dayLine} />
+    </View>
+  );
+}
+
 function Bubble({ message, isMine }: { message: Message; isMine: boolean }) {
-  const time = new Date(message.createdAt).toLocaleTimeString(undefined, {
+  const time = new Date(message.createdAt).toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
+    hour12: true,
   });
+
+  const content = (
+    <>
+      <Text style={[styles.bubbleText, isMine && styles.bubbleTextMine]}>{message.text}</Text>
+      <View style={styles.bubbleFooter}>
+        <Text style={[styles.bubbleTime, isMine && styles.bubbleTimeMine]}>{time}</Text>
+        {isMine ? (
+          <Ionicons
+            name={message.readAt ? 'checkmark-done' : 'checkmark'}
+            size={14}
+            color={message.readAt ? '#9BE7FF' : 'rgba(255,255,255,0.75)'}
+            style={styles.readIcon}
+          />
+        ) : null}
+      </View>
+    </>
+  );
 
   return (
     <View style={[styles.bubbleRow, isMine && styles.bubbleRowMine]}>
-      <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
-        <Text style={[styles.bubbleText, isMine && styles.bubbleTextMine]}>{message.text}</Text>
-        <View style={styles.bubbleFooter}>
-          <Text style={[styles.bubbleTime, isMine && styles.bubbleTimeMine]}>{time}</Text>
-          {isMine ? (
-            <Ionicons
-              name={message.readAt ? 'checkmark-done' : 'checkmark'}
-              size={14}
-              color={message.readAt ? colors.info : 'rgba(255,255,255,0.7)'}
-              style={styles.readIcon}
-            />
-          ) : null}
-        </View>
-      </View>
+      {isMine ? (
+        <LinearGradient
+          colors={['#12B5A0', '#0B7F73']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.bubble, styles.bubbleMine]}
+        >
+          {content}
+        </LinearGradient>
+      ) : (
+        <View style={[styles.bubble, styles.bubbleTheirs]}>{content}</View>
+      )}
     </View>
   );
 }
@@ -211,7 +276,19 @@ const styles = StyleSheet.create({
   headerAvatarText: { color: colors.brandDark, fontWeight: '700', fontSize: fontSize.xs },
   headerName: { fontSize: fontSize.md, fontWeight: '700', color: colors.text, maxWidth: 180 },
   headerActionPressed: { opacity: 0.6 },
-  flex: { flex: 1, backgroundColor: colors.surface },
+  flex: { flex: 1, backgroundColor: '#EEF6F4' },
+  dayRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginVertical: spacing.md },
+  dayLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  dayLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
+    overflow: 'hidden',
+  },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   emptyTitle: { fontSize: fontSize.md, fontWeight: '700', color: colors.text },
   emptyBody: { fontSize: fontSize.sm, color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' },
@@ -220,13 +297,18 @@ const styles = StyleSheet.create({
   bubbleRowMine: { justifyContent: 'flex-end' },
   bubble: {
     maxWidth: '80%',
-    borderRadius: radii.lg,
+    borderRadius: 20,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     marginBottom: spacing.xs,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   bubbleTheirs: { backgroundColor: colors.background, borderBottomLeftRadius: radii.sm },
-  bubbleMine: { backgroundColor: colors.primary, borderBottomRightRadius: radii.sm },
+  bubbleMine: { borderBottomRightRadius: radii.sm },
   bubbleText: { fontSize: fontSize.sm, color: colors.text, lineHeight: 20 },
   bubbleTextMine: { color: colors.textInverse },
   bubbleFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 2 },
@@ -255,16 +337,18 @@ const styles = StyleSheet.create({
     minHeight: 40,
     borderRadius: radii.pill,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     fontSize: fontSize.md,
     color: colors.text,
   },
   sendButton: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     borderRadius: radii.pill,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.brand,
     alignItems: 'center',
     justifyContent: 'center',
   },

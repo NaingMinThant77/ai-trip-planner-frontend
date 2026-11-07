@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ApiError } from '../api/client';
 import { AuthProvider, useAuth } from '../context/auth';
+import { ConfirmHost } from '../components/ui/confirm-host';
 import { colors } from '../theme';
 
 void SplashScreen.preventAutoHideAsync();
@@ -32,6 +33,7 @@ export default function RootLayout() {
         <AuthProvider>
           <StatusBar style="dark" />
           <RootNavigator />
+          <ConfirmHost />
         </AuthProvider>
       </SafeAreaProvider>
     </QueryClientProvider>

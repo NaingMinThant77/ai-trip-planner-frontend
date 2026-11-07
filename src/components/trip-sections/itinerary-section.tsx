@@ -7,6 +7,7 @@ import { formatClock, formatDuration, minutesOfDay } from '../../lib/clock';
 import { colors, fontSize, jellyShadowSmall, radii, spacing } from '../../theme';
 import { Activity, CreateActivityInput, TripDetail } from '../../types/api';
 import { ActivityFormModal } from '../activity-form-modal';
+import { confirmAction } from '../ui/confirm-host';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -39,21 +40,19 @@ export function ItinerarySection({ trip }: { trip: TripDetail }) {
   }
 
   function confirmDelete(activity: Activity): void {
-    Alert.alert('Remove this stop?', `"${activity.title}" will be removed from your plan.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () =>
-          deleteActivity.mutate(activity.id, {
-            onError: (error) =>
-              Alert.alert(
-                'Could not remove that stop',
-                error instanceof ApiError ? error.message : 'Please try again.',
-              ),
-          }),
-      },
-    ]);
+    confirmAction({
+      title: 'Remove this stop?',
+      message: `"${activity.title}" will be removed from your plan.`,
+      confirmLabel: 'Remove',
+      onConfirm: () =>
+        deleteActivity.mutate(activity.id, {
+          onError: (error) =>
+            Alert.alert(
+              'Could not remove that stop',
+              error instanceof ApiError ? error.message : 'Please try again.',
+            ),
+        }),
+    });
   }
 
   function handleSubmitActivity(input: CreateActivityInput): void {

@@ -22,6 +22,7 @@ import { BookingKind, SavedBooking, SaveBookingInput, ViewerRole } from '../../t
 import { BookingCard } from '../booking-card';
 import { BookingFormModal } from '../booking-form-modal';
 import { Chip } from '../ui/chip';
+import { confirmAction } from '../ui/confirm-host';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -127,21 +128,19 @@ export function BookingsSection({
   }
 
   function confirmDelete(booking: SavedBooking): void {
-    Alert.alert('Delete booking', `Remove "${booking.title}" from this trip?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () =>
-          deleteBooking.mutate(booking.id, {
-            onError: (error) =>
-              Alert.alert(
-                'Could not delete',
-                error instanceof ApiError ? error.message : 'Please try again.',
-              ),
-          }),
-      },
-    ]);
+    confirmAction({
+      title: 'Delete this booking?',
+      message: `Remove "${booking.title}" from this trip?`,
+      confirmLabel: 'Delete',
+      onConfirm: () =>
+        deleteBooking.mutate(booking.id, {
+          onError: (error) =>
+            Alert.alert(
+              'Could not delete',
+              error instanceof ApiError ? error.message : 'Please try again.',
+            ),
+        }),
+    });
   }
 
   return (

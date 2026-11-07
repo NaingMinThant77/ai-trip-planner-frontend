@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '../api/client';
+import { confirmAction } from '../components/ui/confirm-host';
 import { TripSelector } from '../components/agent/trip-selector';
 import { TypingDots } from '../components/agent/typing-dots';
 import { BlockRenderer } from '../components/blocks/block-renderer';
@@ -93,13 +95,15 @@ function AgentChat({
   }
 
   function confirmNewChat(): void {
-    Alert.alert('Start a new chat?', 'Your current conversation stays saved with the trip.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'New chat',
-        onPress: () => setSession((current) => ({ ...current, key: current.key + 1, resumeId: null })),
-      },
-    ]);
+    confirmAction({
+      title: 'Start a new chat?',
+      message: 'Your current conversation stays saved with the trip.',
+      confirmLabel: 'New chat',
+      cancelLabel: 'Cancel',
+      icon: 'chatbubbles',
+      tone: 'brand',
+      onConfirm: () => setSession((current) => ({ ...current, key: current.key + 1, resumeId: null })),
+    });
   }
 
   // Active and upcoming only — plus the selected trip even if it has finished (deep link).
@@ -113,7 +117,12 @@ function AgentChat({
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+      <LinearGradient
+        colors={['#CFF1E9', '#E8F7F3', colors.surface]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + spacing.sm }]}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
@@ -124,13 +133,18 @@ function AgentChat({
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
 
-        <LinearGradient colors={gradients.brand} style={styles.avatar}>
-          <Ionicons name="sparkles" size={20} color={colors.textInverse} />
-        </LinearGradient>
+        <View style={styles.avatarRing}>
+          <Image
+            source={require('../../assets/trip_planner/ai_trip_planner_icon.png')}
+            style={styles.avatar}
+            contentFit="cover"
+          />
+          <View style={styles.onlineDot} />
+        </View>
 
         <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>AI Agent / Trip Assistant</Text>
-          <Text style={styles.headerSub}>Always here to plan with you ✨</Text>
+          <Text style={styles.headerTitle}>Trip Assistant</Text>
+          <Text style={styles.headerSub}>Online · always here to plan with you</Text>
         </View>
 
         <Pressable
@@ -142,7 +156,7 @@ function AgentChat({
         >
           <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
         </Pressable>
-      </View>
+      </LinearGradient>
 
       <TripSelector
         trips={selectable}
@@ -226,6 +240,9 @@ function ChatSession({
         <LoadingState label="Loading your conversation…" />
       ) : isEmpty ? (
         <View style={styles.intro}>
+          <LinearGradient colors={gradients.brand} style={styles.introOrb}>
+            <Ionicons name="sparkles" size={30} color={colors.textInverse} />
+          </LinearGradient>
           <Text style={styles.introTitle}>
             {tripId ? 'Ask me about this trip' : "Let's plan a new trip"}
           </Text>
@@ -350,9 +367,11 @@ function LiveBubble({ live, ...actions }: { live: LiveReply } & Omit<BubbleActio
 function AssistantRow({ children }: { children: React.ReactNode }) {
   return (
     <View style={styles.assistantRow}>
-      <LinearGradient colors={gradients.brand} style={styles.smallAvatar}>
-        <Ionicons name="sparkles" size={13} color={colors.textInverse} />
-      </LinearGradient>
+      <Image
+        source={require('../../assets/trip_planner/ai_trip_planner_icon.png')}
+        style={styles.smallAvatar}
+        contentFit="cover"
+      />
       <View style={styles.assistantBody}>{children}</View>
     </View>
   );
@@ -366,21 +385,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.surface,
+    paddingBottom: spacing.lg,
+    borderBottomLeftRadius: radii.xxl,
+    borderBottomRightRadius: radii.xxl,
   },
   headerButton: { padding: 2 },
-  avatar: {
-    width: 44,
-    height: 44,
+  avatarRing: {
+    padding: 2,
     borderRadius: radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.background,
+    shadowColor: '#0B5F58',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  avatar: { width: 44, height: 44, borderRadius: radii.pill },
+  onlineDot: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#22C55E',
+    borderWidth: 2,
+    borderColor: colors.background,
   },
   headerText: { flex: 1 },
   headerTitle: { fontSize: fontSize.md, fontWeight: '800', color: colors.text },
   headerSub: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 1 },
   intro: { flex: 1, justifyContent: 'center', padding: spacing.xl },
+  introOrb: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+    shadowColor: colors.brand,
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
   introTitle: { fontSize: fontSize.xl, fontWeight: '800', color: colors.text },
   introBody: {
     fontSize: fontSize.sm,
@@ -393,19 +441,22 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     maxWidth: '85%',
     backgroundColor: colors.brand,
-    borderRadius: radii.lg,
+    borderRadius: 20,
     borderBottomRightRadius: radii.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+    shadowColor: colors.brand,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   userText: { color: colors.textInverse, fontSize: fontSize.sm, lineHeight: 20 },
   assistantRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
   smallAvatar: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     borderRadius: radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 2,
   },
   assistantBody: { flex: 1 },
@@ -437,10 +488,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
     backgroundColor: colors.background,
     alignItems: 'flex-end',
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 10,
   },
   input: {
     flex: 1,
@@ -448,7 +504,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.xl,
+    borderRadius: radii.pill,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.md,
@@ -457,12 +513,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   sendButton: {
-    width: 44,
-    height: 44,
+    width: 46,
+    height: 46,
     borderRadius: radii.pill,
     backgroundColor: colors.brand,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: colors.brand,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
   stopButton: { backgroundColor: colors.text },
   sendDisabled: { opacity: 0.35 },

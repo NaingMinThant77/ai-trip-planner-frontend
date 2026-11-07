@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '../../api/client';
-import { EmptyState, ErrorState, LoadingState } from '../../components/ui/screen-state';
+import { ErrorState, LoadingState } from '../../components/ui/screen-state';
 import { useSharedWithMe } from '../../hooks/use-sharing';
 import { formatTripRange } from '../../lib/trip-status';
+import { initialsOf } from '../../components/profile/gradient-header';
 import { colors, fontSize, jellyColors, layout, radii, spacing } from '../../theme';
 import { CollaboratorRole, SharedWithMeTrip } from '../../types/api';
 
@@ -42,23 +44,51 @@ export default function SharedTripsScreen() {
   const trips = shared.data;
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + spacing.lg }]}>
-      <View style={styles.header}>
+    <View style={styles.screen}>
+      <LinearGradient
+        colors={['#DCEBFD', '#EAF3FE', colors.surface]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + spacing.lg }]}
+      >
+        <View pointerEvents="none" style={styles.blobLarge} />
+        <View pointerEvents="none" style={styles.blobSmall} />
         <Text style={styles.eyebrow}>SHARED WITH YOU</Text>
         <Text style={styles.title}>Shared trips</Text>
-      </View>
+        <View style={styles.countPill}>
+          <Ionicons name="people" size={13} color={jellyColors.sky} />
+          <Text style={styles.countText}>
+            {trips.length === 0
+              ? 'Trips your members share appear here'
+              : `${trips.length} ${trips.length === 1 ? 'trip' : 'trips'} shared with you`}
+          </Text>
+        </View>
+      </LinearGradient>
 
       <FlatList
         data={trips}
         keyExtractor={(trip) => trip.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, trips.length === 0 && styles.listEmpty]}
         refreshing={shared.isRefetching}
         onRefresh={() => void shared.refetch()}
         ListEmptyComponent={
-          <EmptyState
-            title="Nothing shared yet"
-            message="No trips have been shared with you yet."
-          />
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="paper-plane" size={34} color={jellyColors.sky} />
+            </View>
+            <Text style={styles.emptyTitle}>Nothing shared yet</Text>
+            <Text style={styles.emptyBody}>
+              When a member shares a trip with you, it will show up here so you can view or plan it together.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/(tabs)/family')}
+              style={({ pressed }) => [styles.emptyCta, pressed && styles.pressed]}
+            >
+              <Ionicons name="person-add-outline" size={16} color={colors.textInverse} />
+              <Text style={styles.emptyCtaText}>Find members</Text>
+            </Pressable>
+          </View>
         }
         renderItem={({ item }) => (
           <SharedTripCard trip={item} onPress={() => router.push(`/trip/${item.id}`)} />
@@ -77,6 +107,11 @@ function SharedTripCard({ trip, onPress }: { trip: SharedWithMeTrip; onPress: ()
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
+      <View style={[styles.ownerAvatar, isEditor && styles.ownerAvatarEditor]}>
+        <Text style={[styles.ownerInitials, isEditor && styles.ownerInitialsEditor]}>
+          {initialsOf(trip.ownerName)}
+        </Text>
+      </View>
       <View style={styles.cardBody}>
         <View style={styles.cardTop}>
           <Text style={styles.cardTitle} numberOfLines={1}>
@@ -108,14 +143,92 @@ function SharedTripCard({ trip, onPress }: { trip: SharedWithMeTrip; onPress: ()
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
-  header: { paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+    marginBottom: spacing.lg,
+    borderBottomLeftRadius: radii.xxl,
+    borderBottomRightRadius: radii.xxl,
+    overflow: 'hidden',
+  },
+  blobLarge: {
+    position: 'absolute',
+    top: -50,
+    right: -40,
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    backgroundColor: 'rgba(61,158,240,0.14)',
+  },
+  blobSmall: {
+    position: 'absolute',
+    bottom: -30,
+    right: 100,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(18,184,134,0.14)',
+  },
+  countPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+  },
+  countText: { fontSize: fontSize.xs, fontWeight: '600', color: colors.text },
+  listEmpty: { flexGrow: 1 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: layout.tabBarClearance, gap: spacing.sm },
+  emptyIcon: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: jellyColors.skySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  emptyTitle: { fontSize: fontSize.lg, fontWeight: '800', color: colors.text },
+  emptyBody: {
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: spacing.xl,
+  },
+  emptyCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: radii.pill,
+    backgroundColor: colors.brand,
+  },
+  emptyCtaText: { color: colors.textInverse, fontWeight: '700', fontSize: fontSize.sm },
+  ownerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: jellyColors.skySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerAvatarEditor: { backgroundColor: jellyColors.mintSoft },
+  ownerInitials: { fontSize: fontSize.sm, fontWeight: '800', color: jellyColors.sky },
+  ownerInitialsEditor: { color: jellyColors.mint },
   eyebrow: {
     fontSize: fontSize.xs,
     fontWeight: '700',
     color: jellyColors.sky,
     letterSpacing: 1,
   },
-  title: { fontSize: fontSize.xxl, fontWeight: '700', color: colors.text },
+  title: { fontSize: fontSize.xxl, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
   list: { paddingHorizontal: spacing.lg, paddingBottom: layout.tabBarClearance },
   card: {
     flexDirection: 'row',

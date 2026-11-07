@@ -9,12 +9,13 @@ export type QuickTool = {
   key: string;
   icon: IconName;
   label: string;
+  /** Soft tint behind the icon. */
   background: string;
   iconColor: string;
   onPress: () => void;
 };
 
-/** The 2×2 shortcut grid. Two per row, so a fifth tool wraps rather than shrinking. */
+/** The 2×2 shortcut grid: white cards with a tinted icon tile. A fifth tool wraps. */
 export function QuickTools({ tools }: { tools: QuickTool[] }) {
   return (
     <View style={styles.grid}>
@@ -23,18 +24,17 @@ export function QuickTools({ tools }: { tools: QuickTool[] }) {
           key={tool.key}
           accessibilityRole="button"
           onPress={tool.onPress}
-          style={({ pressed }) => [
-            styles.tile,
-            { backgroundColor: tool.background },
-            pressed && styles.pressed,
-          ]}
+          style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
         >
-          <View style={styles.iconWrap}>
-            <Ionicons name={tool.icon} size={19} color={tool.iconColor} />
+          <View style={[styles.iconWrap, { backgroundColor: tool.background }]}>
+            <Ionicons name={tool.icon} size={22} color={tool.iconColor} />
           </View>
           <Text style={styles.label} numberOfLines={1}>
             {tool.label}
           </Text>
+          <View style={[styles.arrow, { backgroundColor: tool.background }]}>
+            <Ionicons name="arrow-forward" size={12} color={tool.iconColor} />
+          </View>
         </Pressable>
       ))}
     </View>
@@ -47,21 +47,33 @@ const styles = StyleSheet.create({
     // Half the row minus the gap. Written as a percentage so it holds on any screen width.
     width: '47.5%',
     flexGrow: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderRadius: radii.lg,
+    gap: spacing.sm,
+    borderRadius: radii.xl,
     padding: spacing.md,
-    minHeight: 68,
+    backgroundColor: colors.background,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   pressed: { opacity: 0.75 },
   iconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.pill,
-    backgroundColor: colors.background,
+    width: 44,
+    height: 44,
+    borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { flex: 1, fontSize: fontSize.sm, fontWeight: '700', color: colors.text },
+  label: { fontSize: fontSize.sm, fontWeight: '800', color: colors.text },
+  arrow: {
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.md,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

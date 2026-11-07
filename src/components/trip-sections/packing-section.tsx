@@ -24,6 +24,7 @@ import { Button } from '../ui/button';
 import { Chip } from '../ui/chip';
 import { ErrorState, LoadingState } from '../ui/screen-state';
 import { TextField } from '../ui/text-field';
+import { confirmAction } from '../ui/confirm-host';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -98,10 +99,12 @@ export function PackingSection({
   }
 
   function confirmDelete(item: PackingItem): void {
-    Alert.alert('Remove this item?', `"${item.label}" will be removed from your list.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => deleteItem.mutate(item.id) },
-    ]);
+    confirmAction({
+      title: 'Remove this item?',
+      message: `"${item.label}" will be removed from your list.`,
+      confirmLabel: 'Remove',
+      onConfirm: () => deleteItem.mutate(item.id),
+    });
   }
 
   const items = packing.data;
@@ -284,7 +287,12 @@ function EditItemModal({
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Edit item</Text>
+          <View style={styles.modalHeader}>
+            <View style={styles.modalIcon}>
+              <Ionicons name="create" size={18} color={colors.brandDark} />
+            </View>
+            <Text style={styles.modalTitle}>Edit item</Text>
+          </View>
 
           <TextField
             label="Item name"
@@ -448,7 +456,16 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     ...jellyShadow,
   },
-  modalTitle: { fontSize: fontSize.lg, fontWeight: '700', color: colors.text, marginBottom: spacing.md },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
+  modalIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.md,
+    backgroundColor: colors.brandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: { fontSize: fontSize.lg, fontWeight: '800', color: colors.text },
   modalLabel: {
     fontSize: fontSize.sm,
     fontWeight: '600',

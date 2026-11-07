@@ -34,6 +34,8 @@ export type UserProfile = User & {
   interests: string[];
   /** Minted by the server on first profile read, then stable. Shared so family can add you. */
   inviteCode: string;
+  /** False for Google-only accounts, which set a first password instead of changing one. */
+  hasPassword: boolean;
 };
 
 /** A direct message with a family member. */

@@ -8,6 +8,7 @@ import { colors, fontSize, radii, spacing } from '../../theme';
 import { ViewerRole } from '../../types/api';
 import { Button } from '../ui/button';
 import { ErrorState, LoadingState } from '../ui/screen-state';
+import { confirmAction } from '../ui/confirm-host';
 
 export function PhotosSection({
   tripId,
@@ -59,21 +60,20 @@ export function PhotosSection({
   }
 
   function confirmDelete(photoId: string): void {
-    Alert.alert('Remove photo', 'Are you sure you want to delete this photo.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () =>
-          remove.mutate(photoId, {
-            onError: (error) =>
-              Alert.alert(
-                'Could not remove photo',
-                error instanceof ApiError ? error.message : 'Please try again.',
-              ),
-          }),
-      },
-    ]);
+    confirmAction({
+      title: 'Remove this photo?',
+      message: 'The photo will be deleted from this trip.',
+      confirmLabel: 'Remove',
+      icon: 'image',
+      onConfirm: () =>
+        remove.mutate(photoId, {
+          onError: (error) =>
+            Alert.alert(
+              'Could not remove photo',
+              error instanceof ApiError ? error.message : 'Please try again.',
+            ),
+        }),
+    });
   }
 
   if (photos.isPending) return <LoadingState label="Loading photos…" />;

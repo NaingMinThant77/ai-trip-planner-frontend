@@ -1,5 +1,6 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -129,8 +130,31 @@ export function ActivityFormModal({
           style={styles.sheetWrapper}
         >
           <View style={styles.sheet}>
-            <View style={styles.handle} />
-            <Text style={styles.heading}>{mode === 'create' ? 'Add a stop' : 'Edit stop'}</Text>
+            <LinearGradient
+              colors={['#12B5A0', '#0B7F73']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.band}
+            >
+              <View style={styles.headingIcon}>
+                <Ionicons name={mode === 'create' ? 'add' : 'create'} size={20} color={colors.textInverse} />
+              </View>
+              <View style={styles.headingText}>
+                <Text style={styles.heading}>{mode === 'create' ? 'Add a stop' : 'Edit stop'}</Text>
+                <Text style={styles.headingSub}>
+                  {mode === 'create' ? 'Plan a part of your day' : 'Update this stop'}
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                onPress={onClose}
+                hitSlop={8}
+                style={styles.bandClose}
+              >
+                <Ionicons name="close" size={20} color={colors.textInverse} />
+              </Pressable>
+            </LinearGradient>
 
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -311,10 +335,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: radii.xxl,
     borderTopRightRadius: radii.xxl,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
     maxHeight: '88%',
+    overflow: 'hidden',
     ...jellyShadow,
   },
   handle: {
@@ -325,13 +348,34 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.md,
   },
-  heading: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: spacing.md,
+  band: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    marginBottom: spacing.lg,
   },
-  scroll: { flexGrow: 0 },
+  headingText: { flex: 1 },
+  bandClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headingIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radii.lg,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heading: { fontSize: fontSize.lg, fontWeight: '800', color: colors.textInverse },
+  headingSub: { fontSize: fontSize.xs, color: 'rgba(255,255,255,0.85)', marginTop: 1 },
+  scroll: { flexGrow: 0, paddingHorizontal: spacing.xl },
   fieldLabel: {
     fontSize: fontSize.sm,
     fontWeight: '600',
@@ -374,6 +418,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     marginTop: spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
   cancel: {
     flex: 1,

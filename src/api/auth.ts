@@ -16,7 +16,7 @@ export async function login(input: { email: string; password: string }): Promise
 }
 
 export async function changePassword(input: {
-  currentPassword: string;
+  currentPassword?: string;
   newPassword: string;
 }): Promise<void> {
   await api.patch('/auth/password', input);

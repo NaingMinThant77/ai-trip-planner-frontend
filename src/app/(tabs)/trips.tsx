@@ -5,10 +5,11 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '../../api/client';
 import { TripRowCard } from '../../components/trips/trip-row-card';
+import { confirmAction } from '../../components/ui/confirm-host';
 import { ErrorState, LoadingState } from '../../components/ui/screen-state';
 import { TripPhase, tripPhase } from '../../lib/trip-status';
 import { useDeleteTrip, useTrips } from '../../hooks/use-trips';
-import { colors, fontSize, gradients, layout, radii, spacing } from '../../theme';
+import { colors, fontSize, jellyColors, layout, radii, spacing } from '../../theme';
 import { TripListItem } from '../../types/api';
 
 export default function MyTripsScreen() {
@@ -39,30 +40,31 @@ export default function MyTripsScreen() {
   });
 
   function confirmDelete(trip: TripListItem): void {
-    Alert.alert(
-      `Delete "${trip.title}"?`,
-      'This permanently removes the trip with its itinerary, packing list, bookings and photos.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () =>
-            deleteTrip.mutate(trip.id, {
-              onError: (caught) =>
-                Alert.alert(
-                  'Could not delete',
-                  caught instanceof ApiError ? caught.message : 'Please try again.',
-                ),
-            }),
-        },
-      ],
-    );
+    confirmAction({
+      title: `Delete "${trip.title}"?`,
+      message: 'This permanently removes the trip with its itinerary, packing list, bookings and photos.',
+      confirmLabel: 'Delete trip',
+      onConfirm: () =>
+        deleteTrip.mutate(trip.id, {
+          onError: (caught) =>
+            Alert.alert(
+              'Could not delete',
+              caught instanceof ApiError ? caught.message : 'Please try again.',
+            ),
+        }),
+    });
   }
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + spacing.lg }]}>
-      <View style={styles.header}>
+    <View style={styles.screen}>
+      <LinearGradient
+        colors={['#FFE9D6', '#FFF3EA', colors.surface]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + spacing.lg }]}
+      >
+        <View pointerEvents="none" style={styles.blobLarge} />
+        <View pointerEvents="none" style={styles.blobSmall} />
         <View style={styles.headerText}>
           <Text style={styles.eyebrow}>SAVED PLANS</Text>
           <Text style={styles.title}>My trips</Text>
@@ -75,7 +77,7 @@ export default function MyTripsScreen() {
         >
           <Ionicons name="add" size={26} color={colors.textInverse} />
         </Pressable>
-      </View>
+      </LinearGradient>
 
       <FlatList
         data={ordered}
@@ -121,36 +123,46 @@ function SummaryBanner({ trips }: { trips: TripListItem[] }) {
   }
 
   return (
-    <LinearGradient
-      colors={gradients.summary}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.banner}
-    >
-      <Text style={styles.bannerCount}>
-        {trips.length} {trips.length === 1 ? 'trip' : 'trips'}
-      </Text>
-      <Text style={styles.bannerBody}>
-        {trips.length === 0
-          ? 'Your saved plans will appear here.'
-          : 'Every plan you have saved, newest journeys first.'}
-      </Text>
-
-      <View style={styles.bannerRule} />
+    <View style={styles.banner}>
+      <View style={styles.bannerTop}>
+        <Text style={styles.bannerCount}>
+          {trips.length} {trips.length === 1 ? 'trip' : 'trips'}
+        </Text>
+        <Text style={styles.bannerBody}>
+          {trips.length === 0
+            ? 'Your saved plans will appear here.'
+            : 'Every plan you have saved, soonest first.'}
+        </Text>
+      </View>
 
       <View style={styles.bannerStats}>
-        <Stat value={counts.upcoming} label="UPCOMING" />
-        <Stat value={counts.ongoing} label="ONGOING" />
-        <Stat value={counts.completed} label="COMPLETED" />
+        <Stat value={counts.upcoming} label="Upcoming" icon="airplane" tint={jellyColors.sky} soft={jellyColors.skySoft} />
+        <Stat value={counts.ongoing} label="Ongoing" icon="navigate" tint={jellyColors.mint} soft={jellyColors.mintSoft} />
+        <Stat value={counts.completed} label="Completed" icon="checkmark-done" tint={colors.textMuted} soft={colors.surfaceAlt} />
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({
+  value,
+  label,
+  icon,
+  tint,
+  soft,
+}: {
+  value: number;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  tint: string;
+  soft: string;
+}) {
   return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
+    <View style={[styles.stat, { backgroundColor: soft }]}>
+      <View style={[styles.statIcon, { backgroundColor: colors.background }]}>
+        <Ionicons name={icon} size={14} color={tint} />
+      </View>
+      <Text style={[styles.statValue, { color: tint }]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
@@ -169,7 +181,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
     marginBottom: spacing.lg,
+    borderBottomLeftRadius: radii.xxl,
+    borderBottomRightRadius: radii.xxl,
+    overflow: 'hidden',
+  },
+  blobLarge: {
+    position: 'absolute',
+    top: -50,
+    right: -30,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(224,122,63,0.14)',
+  },
+  blobSmall: {
+    position: 'absolute',
+    bottom: -30,
+    right: 120,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(14,138,125,0.12)',
   },
   headerText: { flex: 1 },
   eyebrow: {
@@ -178,7 +212,7 @@ const styles = StyleSheet.create({
     color: colors.accent,
     letterSpacing: 1,
   },
-  title: { fontSize: fontSize.xxl, fontWeight: '700', color: colors.text },
+  title: { fontSize: fontSize.xxl, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
   add: {
     width: 48,
     height: 48,
@@ -194,34 +228,28 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.8 },
   list: { paddingHorizontal: spacing.lg, paddingBottom: layout.tabBarClearance },
-  banner: {
-    borderRadius: radii.xl,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
+  banner: { marginBottom: spacing.lg, gap: spacing.md },
+  bannerTop: { gap: 2 },
+  bannerCount: { fontSize: fontSize.lg, fontWeight: '800', color: colors.text },
+  bannerBody: { fontSize: fontSize.xs, color: colors.textMuted },
+  bannerStats: { flexDirection: 'row', gap: spacing.sm },
+  stat: {
+    flex: 1,
+    borderRadius: radii.lg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    gap: 2,
   },
-  bannerCount: { fontSize: fontSize.lg, fontWeight: '700', color: colors.textInverse },
-  bannerBody: {
-    fontSize: fontSize.xs,
-    color: colors.textInverse,
-    opacity: 0.85,
-    marginTop: 2,
+  statIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
   },
-  bannerRule: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    marginVertical: spacing.lg,
-  },
-  bannerStats: { flexDirection: 'row' },
-  stat: { flex: 1, alignItems: 'center' },
-  statValue: { fontSize: fontSize.lg, fontWeight: '700', color: colors.textInverse },
-  statLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.textInverse,
-    opacity: 0.8,
-    letterSpacing: 0.8,
-    marginTop: 2,
-  },
+  statValue: { fontSize: fontSize.xl, fontWeight: '800' },
+  statLabel: { fontSize: 11, fontWeight: '600', color: colors.textMuted },
   emptyCard: {
     backgroundColor: colors.background,
     borderRadius: radii.lg,

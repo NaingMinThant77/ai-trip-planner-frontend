@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import {
@@ -17,6 +18,7 @@ import { ApiError } from '../../api/client';
 import { useGenerateTripCover, useUploadTripCover } from '../../hooks/use-trip-cover';
 import { colors, fontSize, radii, spacing } from '../../theme';
 import { Button } from '../ui/button';
+import { GradientButton } from '../ui/gradient-button';
 import { KeyboardSafeView } from '../ui/keyboard-safe-view';
 import { TextField } from '../ui/text-field';
 
@@ -208,179 +210,253 @@ export function TripForm({
       style={styles.flex}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <TextField
-          label="Trip Title"
-          value={title}
-          onChangeText={setTitle}
-          placeholder="e.g. Japan Adventure"
-        />
+        <LinearGradient
+          colors={['#CFF1E9', '#E8F7F3', colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.8, y: 1 }}
+          style={styles.hero}
+        >
+          <View style={styles.heroIcon}>
+            <Ionicons name={isEdit ? 'create' : 'airplane'} size={22} color={colors.textInverse} />
+          </View>
+          <View style={styles.heroText}>
+            <Text style={styles.heroTitle}>{isEdit ? 'Update your trip' : 'Plan a new trip'}</Text>
+            <Text style={styles.heroBody}>
+              {isEdit ? 'Change anything — your plan stays saved.' : 'A few details and your itinerary is on its way.'}
+            </Text>
+          </View>
+        </LinearGradient>
 
-        <TextField
-          label="Source"
-          value={source}
-          onChangeText={setSource}
-          placeholder="e.g. New Delhi, India"
-        />
-
-        <TextField
-          label="Destination"
-          value={destination}
-          onChangeText={setDestination}
-          placeholder="e.g. Tokyo, Japan"
-        />
-
-        <Text style={styles.label}>Trip Days</Text>
-        <View style={styles.dates}>
-          <DateField
-            label="Start date"
-            value={startDate}
-            onPress={() => setPicker('start')}
-            style={styles.dateField}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIcon, { backgroundColor: colors.brandSoft }]}>
+              <Ionicons name="map-outline" size={18} color={colors.brandDark} />
+            </View>
+            <View style={styles.cardHeaderText}>
+              <Text style={styles.cardTitle}>Trip details</Text>
+              <Text style={styles.cardSub}>Where you're going</Text>
+            </View>
+          </View>
+          <TextField
+            label="Trip Title"
+            variant="pill"
+            icon="text-outline"
+            value={title}
+            onChangeText={setTitle}
+            placeholder="e.g. Japan Adventure"
           />
-          <DateField
-            label="End date"
-            value={endDate}
-            onPress={() => setPicker('end')}
-            style={styles.dateField}
+
+          <TextField
+            label="From"
+            variant="pill"
+            icon="navigate-circle-outline"
+            value={source}
+            onChangeText={setSource}
+            placeholder="e.g. New Delhi, India"
           />
+
+          <TextField
+            label="Destination"
+            variant="pill"
+            icon="location-outline"
+            value={destination}
+            onChangeText={setDestination}
+            placeholder="e.g. Tokyo, Japan"
+          />
+
         </View>
 
-        {picker !== null ? (
-          <DateTimePicker
-            value={picker === 'start' ? startDate : endDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            minimumDate={picker === 'end' ? startDate : isEdit ? undefined : new Date()}
-            onDismiss={() => setPicker(null)}
-            onValueChange={(_event, selected) => {
-              // Android dialog closes itself; iOS keeps the inline picker open until Done.
-              if (Platform.OS === 'android') setPicker(null);
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIcon, { backgroundColor: colors.infoSoft }]}>
+              <Ionicons name="calendar-outline" size={18} color={colors.info} />
+            </View>
+            <View style={styles.cardHeaderText}>
+              <Text style={styles.cardTitle}>Dates</Text>
+              <Text style={styles.cardSub}>Up to {MAX_TRIP_DAYS} days</Text>
+            </View>
+          </View>
+          <View style={styles.dates}>
+            <DateField
+              label="Start date"
+              value={startDate}
+              onPress={() => setPicker('start')}
+              style={styles.dateField}
+            />
+            <DateField
+              label="End date"
+              value={endDate}
+              onPress={() => setPicker('end')}
+              style={styles.dateField}
+            />
+          </View>
 
-              if (picker === 'start') {
-                setStartDate(selected);
-                // Keep the range valid rather than rejecting it later.
-                if (endDate < selected) setEndDate(addDays(selected, 3));
-              } else {
-                setEndDate(selected);
-              }
-            }}
-          />
-        ) : null}
+          {picker !== null ? (
+            <DateTimePicker
+              value={picker === 'start' ? startDate : endDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              minimumDate={picker === 'end' ? startDate : isEdit ? undefined : new Date()}
+              onDismiss={() => setPicker(null)}
+              onValueChange={(_event, selected) => {
+                // Android dialog closes itself; iOS keeps the inline picker open until Done.
+                if (Platform.OS === 'android') setPicker(null);
 
-        {picker !== null && Platform.OS === 'ios' ? (
-          <Button label="Done" variant="secondary" onPress={() => setPicker(null)} />
-        ) : null}
-
-        {days > 0 ? (
-          <Text style={styles.daysSummary}>
-            {days} {days === 1 ? 'Day' : 'Days'} ({Math.max(days - 1, 0)}{' '}
-            {days - 1 === 1 ? 'Night' : 'Nights'})
-          </Text>
-        ) : null}
-
-        <Text style={styles.label}>Trip Image</Text>
-        {coverImageUrl ? (
-          <View style={styles.coverPreviewWrap}>
-            <Image source={{ uri: coverImageUrl }} style={styles.coverPreview} contentFit="cover" transition={150} />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Remove cover photo"
-              onPress={() => {
-                // Create: drop it. Edit: go back to the cover the trip already had.
-                setCoverImageUrl(initial?.coverImageUrl ?? null);
-                setCoverImagePublicId(null);
+                if (picker === 'start') {
+                  setStartDate(selected);
+                  // Keep the range valid rather than rejecting it later.
+                  if (endDate < selected) setEndDate(addDays(selected, 3));
+                } else {
+                  setEndDate(selected);
+                }
               }}
-              style={[styles.coverRemove, isEdit && !coverChanged && styles.hidden]}
-              disabled={isEdit && !coverChanged}
-            >
-              <Ionicons name={isEdit ? 'arrow-undo' : 'close'} size={16} color={colors.textInverse} />
-            </Pressable>
+            />
+          ) : null}
+
+          {picker !== null && Platform.OS === 'ios' ? (
+            <Button label="Done" variant="secondary" onPress={() => setPicker(null)} />
+          ) : null}
+
+          {days > 0 ? (
+            <View style={styles.daysPill}>
+              <Ionicons name="moon-outline" size={14} color={colors.brandDark} />
+              <Text style={styles.daysSummary}>
+                {days} {days === 1 ? 'Day' : 'Days'} · {Math.max(days - 1, 0)}{' '}
+                {days - 1 === 1 ? 'Night' : 'Nights'}
+              </Text>
+            </View>
+          ) : null}
+
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIcon, { backgroundColor: colors.accentSoft }]}>
+              <Ionicons name="image-outline" size={18} color={colors.accent} />
+            </View>
+            <View style={styles.cardHeaderText}>
+              <Text style={styles.cardTitle}>Cover photo</Text>
+              <Text style={styles.cardSub}>Upload one or let AI create it</Text>
+            </View>
           </View>
-        ) : (
-          <View style={styles.imageActions}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void pickAndUploadImage()}
-              disabled={isBusyWithImage}
-              style={[styles.imageActionBox, isBusyWithImage && styles.disabled]}
-            >
-              {uploadCover.isPending ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : (
-                <>
-                  <Ionicons name="cloud-upload-outline" size={26} color={colors.primary} />
-                  <Text style={styles.imageActionText}>Upload Image</Text>
-                </>
-              )}
-            </Pressable>
+          {coverImageUrl ? (
+            <View style={styles.coverPreviewWrap}>
+              <Image source={{ uri: coverImageUrl }} style={styles.coverPreview} contentFit="cover" transition={150} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Remove cover photo"
+                onPress={() => {
+                  // Create: drop it. Edit: go back to the cover the trip already had.
+                  setCoverImageUrl(initial?.coverImageUrl ?? null);
+                  setCoverImagePublicId(null);
+                }}
+                style={[styles.coverRemove, isEdit && !coverChanged && styles.hidden]}
+                disabled={isEdit && !coverChanged}
+              >
+                <Ionicons name={isEdit ? 'arrow-undo' : 'close'} size={16} color={colors.textInverse} />
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.imageActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void pickAndUploadImage()}
+                disabled={isBusyWithImage}
+                style={[styles.imageActionBox, isBusyWithImage && styles.disabled]}
+              >
+                {uploadCover.isPending ? (
+                  <ActivityIndicator color={colors.brandDark} />
+                ) : (
+                  <>
+                    <Ionicons name="cloud-upload-outline" size={26} color={colors.brandDark} />
+                    <Text style={styles.imageActionText}>Upload Image</Text>
+                  </>
+                )}
+              </Pressable>
 
-            <Pressable
-              accessibilityRole="button"
-              onPress={generateImage}
-              disabled={isBusyWithImage}
-              style={[styles.imageActionBox, isBusyWithImage && styles.disabled]}
-            >
-              {generateCover.isPending ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : (
-                <>
-                  <Ionicons name="sparkles-outline" size={26} color={colors.primary} />
-                  <Text style={styles.imageActionText}>Generate with AI</Text>
-                </>
-              )}
-            </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={generateImage}
+                disabled={isBusyWithImage}
+                style={[styles.imageActionBox, isBusyWithImage && styles.disabled]}
+              >
+                {generateCover.isPending ? (
+                  <ActivityIndicator color={colors.brandDark} />
+                ) : (
+                  <>
+                    <Ionicons name="sparkles-outline" size={26} color={colors.brandDark} />
+                    <Text style={styles.imageActionText}>Generate with AI</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          )}
+
+          {isEdit && coverImageUrl && !coverChanged ? (
+            <View style={styles.changeRow}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void pickAndUploadImage()}
+                disabled={isBusyWithImage}
+                style={[styles.changeButton, isBusyWithImage && styles.disabled]}
+              >
+                <Ionicons name="cloud-upload-outline" size={16} color={colors.brandDark} />
+                <Text style={styles.changeText}>Upload new</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={generateImage}
+                disabled={isBusyWithImage}
+                style={[styles.changeButton, isBusyWithImage && styles.disabled]}
+              >
+                {isBusyWithImage ? (
+                  <ActivityIndicator size="small" color={colors.brandDark} />
+                ) : (
+                  <Ionicons name="sparkles-outline" size={16} color={colors.brandDark} />
+                )}
+                <Text style={styles.changeText}>Generate new</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIcon, { backgroundColor: colors.brandSoft }]}>
+              <Ionicons name="sparkles-outline" size={18} color={colors.brandDark} />
+            </View>
+            <View style={styles.cardHeaderText}>
+              <Text style={styles.cardTitle}>Extras</Text>
+              <Text style={styles.cardSub}>Optional</Text>
+            </View>
           </View>
-        )}
+          <TextField
+            label="Description (optional)"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Write a short description…"
+            multiline
+            numberOfLines={3}
+            maxLength={200}
+            style={styles.description}
+          />
 
-        {isEdit && coverImageUrl && !coverChanged ? (
-          <View style={styles.changeRow}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void pickAndUploadImage()}
-              disabled={isBusyWithImage}
-              style={[styles.changeButton, isBusyWithImage && styles.disabled]}
-            >
-              <Ionicons name="cloud-upload-outline" size={16} color={colors.primary} />
-              <Text style={styles.changeText}>Upload new</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={generateImage}
-              disabled={isBusyWithImage}
-              style={[styles.changeButton, isBusyWithImage && styles.disabled]}
-            >
-              {isBusyWithImage ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
-              )}
-              <Text style={styles.changeText}>Generate new</Text>
-            </Pressable>
-          </View>
-        ) : null}
+          <TextField
+            label="Travellers (optional)"
+            variant="pill"
+            icon="people-outline"
+            value={travelers}
+            onChangeText={setTravelers}
+            keyboardType="number-pad"
+            placeholder="Just me"
+          />
 
-        <TextField
-          label="Description (optional)"
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Write a short description…"
-          multiline
-          numberOfLines={3}
-          maxLength={200}
-          style={styles.description}
-        />
-
-        <TextField
-          label="Travellers (optional)"
-          value={travelers}
-          onChangeText={setTravelers}
-          keyboardType="number-pad"
-          placeholder="Just me"
-        />
+        </View>
 
         {error ?? serverError ? <Text style={styles.error}>{error ?? serverError}</Text> : null}
 
-        <Button label={submitLabel} onPress={handleSubmit} isLoading={isPending} />
+        <GradientButton label={submitLabel} onPress={handleSubmit} isLoading={isPending} />
       </ScrollView>
     </KeyboardSafeView>
   );
@@ -437,23 +513,76 @@ function parseCalendarDate(iso: string): Date {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radii.xl,
+    marginBottom: spacing.lg,
+  },
+  heroIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.brand,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
+  },
+  heroText: { flex: 1 },
+  heroTitle: { fontSize: fontSize.lg, fontWeight: '800', color: colors.text },
+  heroBody: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 2 },
+  card: {
+    backgroundColor: colors.background,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
+  cardIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardHeaderText: { flex: 1 },
+  cardTitle: { fontSize: fontSize.md, fontWeight: '800', color: colors.text },
+  cardSub: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 1 },
+  daysPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    backgroundColor: colors.brandSoft,
+  },
   dates: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xs },
   dateField: { flex: 1 },
   dateBox: {
-    minHeight: 48,
+    minHeight: 50,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.lg,
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    justifyContent: 'center',
-    backgroundColor: colors.background,
   },
-  dateText: { fontSize: fontSize.md, color: colors.text },
-  daysSummary: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    marginBottom: spacing.lg,
-  },
+  dateText: { fontSize: fontSize.md, fontWeight: '600', color: colors.text },
+  daysSummary: { fontSize: fontSize.sm, fontWeight: '700', color: colors.brandDark },
   label: {
     fontSize: fontSize.sm,
     fontWeight: '600',
@@ -463,29 +592,28 @@ const styles = StyleSheet.create({
   imageActions: {
     flexDirection: 'row',
     gap: spacing.md,
-    marginBottom: spacing.lg,
   },
   imageActionBox: {
     flex: 1,
     minHeight: 96,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: colors.border,
-    borderRadius: radii.md,
+    borderColor: colors.brand,
+    borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.brandSoft,
   },
   imageActionText: {
     fontSize: fontSize.sm,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.brandDark,
     textAlign: 'center',
   },
   disabled: { opacity: 0.6 },
   hidden: { opacity: 0 },
-  changeRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
+  changeRow: { flexDirection: 'row', gap: spacing.md },
   changeButton: {
     flex: 1,
     flexDirection: 'row',
@@ -495,13 +623,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.md,
-    backgroundColor: colors.surface,
+    borderRadius: radii.pill,
+    backgroundColor: colors.brandSoft,
   },
-  changeText: { fontSize: fontSize.sm, fontWeight: '600', color: colors.primary },
+  changeText: { fontSize: fontSize.sm, fontWeight: '700', color: colors.brandDark },
   coverPreviewWrap: {
-    marginBottom: spacing.lg,
-    borderRadius: radii.md,
+    marginBottom: spacing.sm,
+    borderRadius: radii.lg,
     overflow: 'hidden',
   },
   coverPreview: {

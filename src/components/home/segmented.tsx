@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fontSize, spacing } from '../../theme';
+import { colors, fontSize, radii, spacing } from '../../theme';
 
 type Props<T extends string> = {
   options: { value: T; label: string }[];
@@ -7,7 +7,7 @@ type Props<T extends string> = {
   onChange: (value: T) => void;
 };
 
-/** Underlined text tabs, as on Home. Not a pill switch — it sits inside the page, not on it. */
+/** Pill switch used for Home's My Plan / Explore toggle. */
 export function Segmented<T extends string>({ options, value, onChange }: Props<T>) {
   return (
     <View style={styles.row}>
@@ -19,10 +19,9 @@ export function Segmented<T extends string>({ options, value, onChange }: Props<
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
             onPress={() => onChange(option.value)}
-            style={styles.item}
+            style={[styles.item, isActive && styles.itemActive]}
           >
             <Text style={[styles.label, isActive && styles.labelActive]}>{option.label}</Text>
-            <View style={[styles.rule, isActive && styles.ruleActive]} />
           </Pressable>
         );
       })}
@@ -31,10 +30,26 @@ export function Segmented<T extends string>({ options, value, onChange }: Props<
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: spacing.xl },
-  item: { alignItems: 'center' },
-  label: { fontSize: fontSize.md, fontWeight: '700', color: colors.textMuted },
-  labelActive: { color: colors.text },
-  rule: { height: 2, alignSelf: 'stretch', marginTop: spacing.xs, backgroundColor: 'transparent' },
-  ruleActive: { backgroundColor: colors.text },
+  row: {
+    flexDirection: 'row',
+    padding: 4,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceAlt,
+  },
+  item: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.pill,
+  },
+  itemActive: {
+    backgroundColor: colors.background,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  label: { fontSize: fontSize.sm, fontWeight: '700', color: colors.textMuted },
+  labelActive: { color: colors.brandDark },
 });

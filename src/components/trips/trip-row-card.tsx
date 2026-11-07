@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { formatTripRange, tripPhase } from '../../lib/trip-status';
-import { colors, fontSize, radii, spacing, tripCoverGradient } from '../../theme';
+import { formatTripRange, tripDayCount, tripPhase } from '../../lib/trip-status';
+import { colors, fontSize, radii, spacing } from '../../theme';
 import { Trip } from '../../types/api';
 import { StatusChip } from '../ui/status-chip';
 import { MenuAnchor, TripActionsMenu } from './trip-actions-menu';
@@ -26,8 +26,7 @@ export function TripRowCard({ trip, onPress, onEdit, onDelete }: Props) {
     menuButton.current?.measureInWindow((x, y, width, height) => setAnchor({ x, y, width, height }));
   }
 
-  // The accent stripe reuses the cover's own colour so the two read as one card.
-  const [accent] = tripCoverGradient(trip.id);
+  const days = tripDayCount(trip);
 
   return (
     <Pressable
@@ -35,8 +34,6 @@ export function TripRowCard({ trip, onPress, onEdit, onDelete }: Props) {
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      <View style={[styles.accent, { backgroundColor: accent }]} />
-
       <TripCover
         seed={trip.id}
         imageUrl={trip.coverImageUrl}
@@ -49,10 +46,23 @@ export function TripRowCard({ trip, onPress, onEdit, onDelete }: Props) {
           {trip.title}
         </Text>
         <View style={styles.dateRow}>
+          <Ionicons name="location-outline" size={12} color={colors.brand} />
+          <Text style={styles.destination} numberOfLines={1}>
+            {trip.destination}
+          </Text>
+        </View>
+        <View style={styles.dateRow}>
           <Ionicons name="calendar-outline" size={12} color={colors.textMuted} />
           <Text style={styles.dates}>{formatTripRange(trip)}</Text>
         </View>
-        <StatusChip phase={tripPhase(trip)} size="sm" />
+        <View style={styles.chips}>
+          <StatusChip phase={tripPhase(trip)} size="sm" />
+          <View style={styles.daysChip}>
+            <Text style={styles.daysText}>
+              {days} {days === 1 ? 'day' : 'days'}
+            </Text>
+          </View>
+        </View>
       </View>
 
       <Pressable
@@ -82,25 +92,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background,
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     padding: spacing.md,
-    paddingLeft: spacing.lg,
     marginBottom: spacing.md,
     gap: spacing.md,
     overflow: 'hidden',
     shadowColor: '#0F172A',
-    shadowOpacity: 0.07,
-    shadowRadius: 12,
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
   pressed: { opacity: 0.75 },
-  menuButton: { padding: spacing.xs, borderRadius: radii.pill },
-  menuPressed: { backgroundColor: colors.surface },
-  accent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 5 },
-  cover: { width: 62, height: 62, borderRadius: radii.md },
+  menuButton: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuPressed: { backgroundColor: colors.surfaceAlt },
+  chips: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  daysChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: radii.pill,
+    backgroundColor: colors.accentSoft,
+  },
+  daysText: { fontSize: 10, fontWeight: '700', color: colors.accent },
+  cover: { width: 84, height: 84, borderRadius: radii.lg },
   body: { flex: 1, gap: spacing.xs },
-  title: { fontSize: fontSize.md, fontWeight: '700', color: colors.text },
+  title: { fontSize: fontSize.md, fontWeight: '800', color: colors.text },
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  destination: { flex: 1, fontSize: fontSize.xs, fontWeight: '600', color: colors.brandDark },
   dates: { fontSize: fontSize.xs, color: colors.textMuted },
 });

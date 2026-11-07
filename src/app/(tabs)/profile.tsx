@@ -20,6 +20,7 @@ import { useProfile } from "../../hooks/use-explore";
 import { useFamily } from "../../hooks/use-family";
 import { colors, fontSize, layout, radii, spacing } from "../../theme";
 import { InviteCodeCard } from "@/components/profile/invite-code-card";
+import { confirmAction } from "../../components/ui/confirm-host";
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -44,10 +45,13 @@ export default function ProfileScreen() {
   }
 
   function handleSignOut(): void {
-    Alert.alert("Sign out", "You will need to sign in again.", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign out", style: "destructive", onPress: () => void signOut() },
-    ]);
+    confirmAction({
+      title: "Sign out?",
+      message: "You will need to sign in again.",
+      confirmLabel: "Sign out",
+      icon: "log-out",
+      onConfirm: () => void signOut(),
+    });
   }
 
   const name = user?.name ?? profile.data.name;
@@ -64,6 +68,15 @@ export default function ProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <InviteCodeCard code={profile.data.inviteCode} />
+
+        <SettingRow
+          icon="mail-outline"
+          iconBackground={colors.infoSoft}
+          iconColor={colors.info}
+          title="Account details"
+          subtitle="Name, email, photo and password"
+          onPress={() => router.push('/account')}
+        />
 
         <SettingRow
           icon="people-outline"
@@ -85,15 +98,6 @@ export default function ProfileScreen() {
           title="Travel profile"
           subtitle="Preferences and saved traveller details"
           onPress={() => router.push("/travel-profile")}
-        />
-
-        <SettingRow
-          icon="mail-outline"
-          iconBackground={colors.infoSoft}
-          iconColor={colors.info}
-          title="Account details"
-          subtitle="Name, email, photo and password"
-          onPress={() => router.push('/account')}
         />
 
         <SettingRow

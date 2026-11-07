@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { useState } from "react";
 import {
@@ -71,7 +72,10 @@ export default function SignInScreen() {
         contentFit="cover"
         transition={250}
       />
-      <View style={styles.scrim} />
+      <LinearGradient
+        colors={["rgba(8,60,56,0.55)", "rgba(8,40,40,0.35)", "rgba(5,20,25,0.8)"]}
+        style={styles.scrim}
+      />
 
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <KeyboardSafeView
@@ -87,6 +91,9 @@ export default function SignInScreen() {
             </View>
 
             <View style={styles.card}>
+              <View style={styles.chip}>
+                <Text style={styles.chipText}>👋 Welcome back</Text>
+              </View>
               <Text style={styles.title}>
                 Plan your trips with ease and confidence
               </Text>
@@ -157,7 +164,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: colors.overlay,
   },
   safe: { flex: 1 },
   flex: { flex: 1 },
@@ -172,7 +178,21 @@ const styles = StyleSheet.create({
     borderRadius: radii.xxl,
     padding: spacing.xl,
     marginTop: spacing.md,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 14,
   },
+  chip: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.brandSoft,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    marginBottom: spacing.md,
+  },
+  chipText: { fontSize: fontSize.xs, fontWeight: "700", color: colors.brandDark },
   title: {
     fontSize: fontSize.xxl,
     lineHeight: 38,

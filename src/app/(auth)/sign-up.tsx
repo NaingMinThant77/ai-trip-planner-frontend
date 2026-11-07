@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { useState } from "react";
 import {
@@ -15,7 +16,7 @@ import { OrDivider } from "../../components/auth/or-divider";
 import { GradientButton } from "../../components/ui/gradient-button";
 import { TextField } from "../../components/ui/text-field";
 import { useAuth } from "../../context/auth";
-import { colors, fontSize, spacing } from "../../theme";
+import { colors, fontSize, radii, spacing } from "../../theme";
 import { KeyboardSafeView } from '../../components/ui/keyboard-safe-view';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -74,6 +75,12 @@ export default function SignUpScreen() {
   }
 
   return (
+    <LinearGradient
+      colors={["#CFF1E9", "#E8F7F3", "#F6F7F9"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0.8, y: 1 }}
+      style={styles.root}
+    >
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <KeyboardSafeView
         style={styles.flex}
@@ -94,7 +101,7 @@ export default function SignUpScreen() {
             Explore places you&apos;ve never seen — discovered just for you.
           </Text>
 
-          <View style={styles.form}>
+          <View style={[styles.form, styles.formCard]}>
             <TextField
               label="Full name"
               variant="pill"
@@ -151,11 +158,13 @@ export default function SignUpScreen() {
         </ScrollView>
       </KeyboardSafeView>
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  root: { flex: 1 },
+  safe: { flex: 1 },
   flex: { flex: 1 },
   content: { flexGrow: 1, padding: spacing.lg, paddingBottom: spacing.xxl },
   collage: { marginTop: spacing.lg },
@@ -170,6 +179,16 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textMuted,
     marginTop: spacing.sm,
+  },
+  formCard: {
+    backgroundColor: colors.background,
+    borderRadius: radii.xxl,
+    padding: spacing.xl,
+    shadowColor: "#0B5F58",
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
   },
   form: { marginTop: spacing.xl },
   error: {

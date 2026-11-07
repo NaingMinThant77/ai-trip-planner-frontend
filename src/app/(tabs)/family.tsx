@@ -67,7 +67,7 @@ export default function FamilyScreen() {
             ? "Nobody added yet"
             : `${members.length} ${members.length === 1 ? "person" : "people"}`
         }
-        badge="👨‍👩‍👧"
+        imageSource={require("../../../assets/trip_planner/ai_trip_planner_icon.png")}
       />
 
       <ScrollView contentContainerStyle={styles.content}>

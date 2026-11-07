@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ApiError } from '../api/client';
 import { AccountCard } from '../components/profile/account-card';
 import { initialsOf } from '../components/profile/gradient-header';
@@ -18,6 +19,7 @@ import {
 } from '../hooks/use-account';
 import { useProfile } from '../hooks/use-explore';
 import { colors, fontSize, radii, spacing } from '../theme';
+import { confirmAction } from '../components/ui/confirm-host';
 
 type Notice = { tone: 'success' | 'error'; message: string } | null;
 
@@ -62,6 +64,7 @@ export default function AccountScreen() {
   }
 
   const data = profile.data;
+  const hasPassword = data.hasPassword;
   // `null` means untouched, so the server value shows until the user actually edits.
   const nameValue = name ?? data.name;
   const emailValue = email ?? data.email;
@@ -98,24 +101,23 @@ export default function AccountScreen() {
   }
 
   function handleRemovePhoto(): void {
-    Alert.alert('Remove photo', 'Your initials will be shown instead.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => {
-          setPhotoNotice(null);
-          removeAvatar.mutate(undefined, {
-            onSuccess: () => setPhotoNotice({ tone: 'success', message: 'Photo removed.' }),
-            onError: (error) =>
-              setPhotoNotice({
-                tone: 'error',
-                message: messageOf(error, 'Could not remove the photo.'),
-              }),
-          });
-        },
+    confirmAction({
+      title: 'Remove your photo?',
+      message: 'Your initials will be shown instead.',
+      confirmLabel: 'Remove',
+      icon: 'image',
+      onConfirm: () => {
+        setPhotoNotice(null);
+        removeAvatar.mutate(undefined, {
+          onSuccess: () => setPhotoNotice({ tone: 'success', message: 'Photo removed.' }),
+          onError: (error) =>
+            setPhotoNotice({
+              tone: 'error',
+              message: messageOf(error, 'Could not remove the photo.'),
+            }),
+        });
       },
-    ]);
+    });
   }
 
   function handleSaveName(): void {
@@ -162,7 +164,7 @@ export default function AccountScreen() {
   }
 
   function handleChangePassword(): void {
-    if (currentPassword.length === 0) {
+    if (hasPassword && currentPassword.length === 0) {
       setPasswordNotice({ tone: 'error', message: 'Enter your current password.' });
       return;
     }
@@ -175,12 +177,15 @@ export default function AccountScreen() {
     }
 
     changePassword.mutate(
-      { currentPassword, newPassword },
+      { currentPassword: hasPassword ? currentPassword : undefined, newPassword },
       {
         onSuccess: () => {
           setCurrentPassword('');
           setNewPassword('');
-          setPasswordNotice({ tone: 'success', message: 'Password changed.' });
+          setPasswordNotice({
+            tone: 'success',
+            message: hasPassword ? 'Password changed.' : 'Password set. You can now sign in with it too.',
+          });
         },
         onError: (error) =>
           setPasswordNotice({
@@ -195,64 +200,81 @@ export default function AccountScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <AccountCard
-        icon="camera-outline"
-        iconBackground={colors.brandSoft}
-        iconColor={colors.brandDark}
-        title="Profile photo"
-        subtitle="Shown on your profile and to family"
-        notice={photoNotice}
+      <LinearGradient
+        colors={['#CFF1E9', '#E8F7F3', '#FFFFFF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={styles.hero}
       >
-        <View style={styles.photoRow}>
+        <View pointerEvents="none" style={styles.heroBlobLarge} />
+        <View pointerEvents="none" style={styles.heroBlobSmall} />
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={data.avatarUrl ? 'Replace profile photo' : 'Upload profile photo'}
+          onPress={() => void handlePickPhoto()}
+          disabled={isBusyWithPhoto}
+          style={({ pressed }) => [styles.heroRing, (pressed || isBusyWithPhoto) && styles.pressed]}
+        >
           {data.avatarUrl ? (
             <Image
               source={{ uri: data.avatarUrl }}
-              style={styles.preview}
+              style={styles.heroAvatar}
               contentFit="cover"
               transition={150}
               accessibilityLabel="Your profile photo"
             />
           ) : (
-            <View style={[styles.preview, styles.previewEmpty]}>
-              <Text style={styles.previewText}>{initialsOf(data.name)}</Text>
-            </View>
+            <LinearGradient colors={['#12B5A0', '#0B6A62']} style={styles.heroAvatar}>
+              <Text style={styles.heroInitials}>{initialsOf(data.name)}</Text>
+            </LinearGradient>
           )}
+          <View style={styles.cameraBadge}>
+            {isBusyWithPhoto ? (
+              <ActivityIndicator size="small" color={colors.textInverse} />
+            ) : (
+              <Ionicons name="camera" size={16} color={colors.textInverse} />
+            )}
+          </View>
+        </Pressable>
 
-          <View style={styles.photoActions}>
+        <Text style={styles.heroName} numberOfLines={1}>
+          {data.name}
+        </Text>
+        <Text style={styles.heroEmail} numberOfLines={1}>
+          {data.email}
+        </Text>
+
+        <View style={styles.heroActions}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void handlePickPhoto()}
+            disabled={isBusyWithPhoto}
+            style={({ pressed }) => [styles.heroButton, pressed && styles.pressed]}
+          >
+            <Ionicons name="image-outline" size={16} color={colors.textInverse} />
+            <Text style={styles.heroButtonLabel}>
+              {uploadAvatar.isPending ? 'Uploading…' : data.avatarUrl ? 'Change photo' : 'Upload photo'}
+            </Text>
+          </Pressable>
+          {data.avatarUrl ? (
             <Pressable
               accessibilityRole="button"
-              onPress={() => void handlePickPhoto()}
+              onPress={handleRemovePhoto}
               disabled={isBusyWithPhoto}
-              style={({ pressed }) => [
-                styles.photoButton,
-                (pressed || isBusyWithPhoto) && styles.pressed,
-              ]}
+              style={({ pressed }) => [styles.heroRemove, pressed && styles.pressed]}
             >
-              <Ionicons name="image-outline" size={16} color={colors.textInverse} />
-              <Text style={styles.photoButtonLabel}>
-                {uploadAvatar.isPending
-                  ? 'Uploading…'
-                  : data.avatarUrl
-                    ? 'Replace photo'
-                    : 'Upload photo'}
-              </Text>
+              <Ionicons name="trash-outline" size={16} color={colors.danger} />
+              <Text style={styles.heroRemoveLabel}>{removeAvatar.isPending ? 'Removing…' : 'Remove'}</Text>
             </Pressable>
-
-            {data.avatarUrl ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleRemovePhoto}
-                disabled={isBusyWithPhoto}
-                style={({ pressed }) => [styles.removeButton, pressed && styles.pressed]}
-              >
-                <Text style={styles.removeLabel}>
-                  {removeAvatar.isPending ? 'Removing…' : 'Remove'}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
+          ) : null}
         </View>
-      </AccountCard>
+        {photoNotice ? (
+          <Text style={[styles.heroNotice, photoNotice.tone === 'error' && styles.heroNoticeError]}>
+            {photoNotice.message}
+          </Text>
+        ) : null}
+      </LinearGradient>
 
       <AccountCard
         icon="person-outline"
@@ -307,17 +329,23 @@ export default function AccountScreen() {
         iconBackground={colors.dangerSoft}
         iconColor={colors.danger}
         title="Password"
-        subtitle="Your current password is required to set a new one"
+        subtitle={
+          hasPassword
+            ? 'Your current password is required to set a new one'
+            : 'You signed in with Google. Set a password to also sign in with your email.'
+        }
         notice={passwordNotice}
       >
-        <TextField
-          label="Current password"
-          value={currentPassword}
-          onChangeText={setCurrentPassword}
-          secureTextEntry
-          autoComplete="current-password"
-          placeholder="Your current password"
-        />
+        {hasPassword ? (
+          <TextField
+            label="Current password"
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            secureTextEntry
+            autoComplete="current-password"
+            placeholder="Your current password"
+          />
+        ) : null}
         <TextField
           label="New password"
           value={newPassword}
@@ -327,15 +355,11 @@ export default function AccountScreen() {
           placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
         />
         <Button
-          label="Change password"
+          label={hasPassword ? 'Change password' : 'Set password'}
           onPress={handleChangePassword}
           isLoading={changePassword.isPending}
-          disabled={currentPassword.length === 0 || newPassword.length === 0}
+          disabled={(hasPassword && currentPassword.length === 0) || newPassword.length === 0}
         />
-        <Text style={styles.hint}>
-          An account created with Google has no password to change — use the Google button to
-          sign in instead.
-        </Text>
       </AccountCard>
     </ScrollView>
   );
@@ -343,36 +367,89 @@ export default function AccountScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  photoRow: { flexDirection: 'row', alignItems: 'center' },
-  preview: {
-    width: 72,
-    height: 72,
-    borderRadius: radii.pill,
-    marginRight: spacing.lg,
-    backgroundColor: colors.surfaceAlt,
+  hero: {
+    alignItems: 'center',
+    borderRadius: radii.xxl,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    overflow: 'hidden',
   },
-  previewEmpty: { alignItems: 'center', justifyContent: 'center' },
-  previewText: { fontSize: fontSize.lg, fontWeight: '700', color: colors.textMuted },
-  photoActions: { flex: 1, gap: spacing.sm },
-  photoButton: {
+  heroBlobLarge: {
+    position: 'absolute',
+    top: -60,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(14,138,125,0.12)',
+  },
+  heroBlobSmall: {
+    position: 'absolute',
+    bottom: -30,
+    left: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(224,122,63,0.14)',
+  },
+  heroRing: {
+    padding: 4,
+    borderRadius: radii.pill,
+    backgroundColor: colors.background,
+    shadowColor: '#0B5F58',
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  heroAvatar: {
+    width: 112,
+    height: 112,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  heroInitials: { color: colors.textInverse, fontSize: 36, fontWeight: '800' },
+  cameraBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 2,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.brand,
+    borderWidth: 3,
+    borderColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroName: { marginTop: spacing.md, fontSize: fontSize.xl, fontWeight: '800', color: colors.text },
+  heroEmail: { fontSize: fontSize.sm, color: colors.textMuted, marginTop: 2 },
+  heroActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
+  heroButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: spacing.sm,
-    minHeight: 44,
-    borderRadius: radii.md,
+    paddingHorizontal: spacing.lg,
+    minHeight: 42,
+    borderRadius: radii.pill,
     backgroundColor: colors.brand,
-    paddingHorizontal: spacing.md,
   },
-  photoButtonLabel: { color: colors.textInverse, fontSize: fontSize.sm, fontWeight: '700' },
-  removeButton: {
-    minHeight: 40,
-    borderRadius: radii.md,
-    backgroundColor: colors.dangerSoft,
+  heroButtonLabel: { color: colors.textInverse, fontSize: fontSize.sm, fontWeight: '700' },
+  heroRemove: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.lg,
+    minHeight: 42,
+    borderRadius: radii.pill,
+    backgroundColor: colors.dangerSoft,
   },
-  removeLabel: { color: colors.danger, fontSize: fontSize.sm, fontWeight: '700' },
+  heroRemoveLabel: { color: colors.danger, fontSize: fontSize.sm, fontWeight: '700' },
+  heroNotice: { marginTop: spacing.md, fontSize: fontSize.xs, color: colors.brandDark, fontWeight: '600' },
+  heroNoticeError: { color: colors.danger },
   pressed: { opacity: 0.7 },
   hint: {
     fontSize: fontSize.xs,

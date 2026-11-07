@@ -72,19 +72,19 @@ const styles = StyleSheet.create({
   wrapper: { marginBottom: spacing.lg },
   label: {
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
     marginBottom: spacing.xs,
   },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 48,
+    minHeight: 50,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
   fieldPill: {
     minHeight: 54,

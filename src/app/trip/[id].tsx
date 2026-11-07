@@ -15,15 +15,16 @@ import { useDestinationImage } from '../../hooks/use-destination-image';
 import { useDeleteTrip, useTrip } from '../../hooks/use-trips';
 import { TripDetail } from '../../types/api';
 import { colors, fontSize, radii, spacing, tripCoverGradient } from '../../theme';
+import { confirmAction } from '../../components/ui/confirm-host';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
 const SECTIONS = [
-  { key: 'itinerary', label: 'Itinerary' },
-  { key: 'bookings', label: 'Bookings' },
-  { key: 'packing', label: 'Packing' },
-  { key: 'photos', label: 'Photos' },
-] as const;
+  { key: 'itinerary', label: 'Plan', icon: 'map', iconOutline: 'map-outline' },
+  { key: 'bookings', label: 'Bookings', icon: 'ticket', iconOutline: 'ticket-outline' },
+  { key: 'packing', label: 'Packing', icon: 'bag-handle', iconOutline: 'bag-handle-outline' },
+  { key: 'photos', label: 'Photos', icon: 'images', iconOutline: 'images-outline' },
+] as const satisfies readonly { key: string; label: string; icon: IconName; iconOutline: IconName }[];
 
 type SectionKey = (typeof SECTIONS)[number]['key'];
 
@@ -56,22 +57,20 @@ export default function TripDetailScreen() {
   }
 
   function confirmDelete(): void {
-    Alert.alert('Delete trip', 'This removes the itinerary, packing list and photos.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () =>
-          deleteTrip.mutate(tripId, {
-            onSuccess: () => router.replace('/(tabs)/trips'),
-            onError: (error) =>
-              Alert.alert(
-                'Could not delete',
-                error instanceof ApiError ? error.message : 'Please try again.',
-              ),
-          }),
-      },
-    ]);
+    confirmAction({
+      title: 'Delete this trip?',
+      message: 'This removes the itinerary, packing list, bookings and photos for good.',
+      confirmLabel: 'Delete trip',
+      onConfirm: () =>
+        deleteTrip.mutate(tripId, {
+          onSuccess: () => router.replace('/(tabs)/trips'),
+          onError: (error) =>
+            Alert.alert(
+              'Could not delete',
+              error instanceof ApiError ? error.message : 'Please try again.',
+            ),
+        }),
+    });
   }
 
   function goBack(): void {
@@ -126,11 +125,7 @@ export default function TripDetailScreen() {
         )}
 
         <View style={styles.tabsBar}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabsRow}
-          >
+          <View style={styles.tabsRow}>
             {SECTIONS.map((item) => {
               const isActive = section === item.key;
               return (
@@ -141,13 +136,18 @@ export default function TripDetailScreen() {
                   onPress={() => setSection(item.key)}
                   style={[styles.tab, isActive && styles.tabActive]}
                 >
-                  <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                  <Ionicons
+                    name={isActive ? item.icon : item.iconOutline}
+                    size={16}
+                    color={isActive ? colors.textInverse : colors.textMuted}
+                  />
+                  <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]} numberOfLines={1}>
                     {item.label}
                   </Text>
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -213,10 +213,10 @@ function HeroText({ data }: { data: TripDetail }) {
   return (
     <View>
       <Text style={styles.title}>{data.title}</Text>
-      <HeroMeta icon="location-outline">
+      <HeroMeta icon="location">
         {data.source ? `${data.source}  →  ${data.destination}` : data.destination}
       </HeroMeta>
-      <HeroMeta icon="calendar-outline">
+      <HeroMeta icon="calendar">
         {formatRange(data.startDate, data.endDate)} · {data.travelers}{' '}
         {data.travelers === 1 ? 'traveller' : 'travellers'}
       </HeroMeta>
@@ -232,7 +232,7 @@ function HeroText({ data }: { data: TripDetail }) {
 function HeroMeta({ icon, children }: { icon: IconName; children: ReactNode }) {
   return (
     <View style={styles.metaRow}>
-      <Ionicons name={icon} size={16} color={colors.textInverse} />
+      <Ionicons name={icon} size={14} color={colors.textInverse} />
       <Text style={styles.metaText} numberOfLines={1}>
         {children}
       </Text>
@@ -250,10 +250,15 @@ function formatRange(start: string, end: string): string {
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.surface },
   content: { paddingBottom: spacing.xxl },
-  hero: { minHeight: 280 },
+  hero: {
+    minHeight: 300,
+    borderBottomLeftRadius: radii.xxl,
+    borderBottomRightRadius: radii.xxl,
+    overflow: 'hidden',
+  },
   heroInner: {
     flex: 1,
-    minHeight: 280,
+    minHeight: 300,
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
@@ -264,7 +269,9 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: radii.pill,
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    backgroundColor: 'rgba(255, 255, 255, 0.24)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -274,14 +281,21 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.textInverse,
     marginBottom: spacing.sm,
+    letterSpacing: -0.3,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
     gap: spacing.xs,
     marginTop: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  metaText: { flex: 1, fontSize: fontSize.sm, fontWeight: '600', color: colors.textInverse },
+  metaText: { flexShrink: 1, fontSize: fontSize.xs, fontWeight: '700', color: colors.textInverse },
   notes: {
     fontSize: fontSize.xs,
     color: colors.textInverse,
@@ -291,20 +305,29 @@ const styles = StyleSheet.create({
   },
   tabsBar: {
     backgroundColor: colors.background,
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  tabsRow: { gap: spacing.sm, paddingHorizontal: spacing.lg },
-  tab: {
-    paddingHorizontal: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginTop: -spacing.xl,
     paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
-    backgroundColor: colors.brandSoft,
+    borderRadius: radii.xxl,
+    shadowColor: '#0B5F58',
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  tabsRow: { flexDirection: 'row', gap: 4, paddingHorizontal: spacing.sm },
+  tab: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.xl,
   },
   tabActive: { backgroundColor: colors.brand },
-  tabLabel: { fontSize: fontSize.sm, color: colors.brandDark, fontWeight: '600' },
-  tabLabelActive: { color: colors.textInverse, fontWeight: '700' },
+  tabLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '700' },
+  tabLabelActive: { color: colors.textInverse },
   section: { padding: spacing.lg },
   accessBanner: {
     flexDirection: 'row',

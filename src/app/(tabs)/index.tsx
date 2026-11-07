@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -57,6 +58,9 @@ export default function HomeScreen() {
   const attentionStep = attention ? nextPlanningStep(attention) : null;
   const displayName = user?.name ?? profile.data?.name ?? '';
   // The profile query is the fresher source: it updates right after a photo upload.
+  const firstName = displayName.trim().split(/\s+/)[0] ?? '';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const avatarUrl = profile.data?.avatarUrl ?? user?.avatarUrl ?? null;
 
   const quickTools: QuickTool[] = [
@@ -87,9 +91,9 @@ export default function HomeScreen() {
     {
       key: 'family',
       icon: 'people-outline',
-      label: 'Invite family',
-      background: colors.accentSoft,
-      iconColor: colors.accent,
+      label: 'Invite members',
+      background: colors.primarySoft,
+      iconColor: colors.primary,
       onPress: () => router.push('/(tabs)/family'),
     },
   ];
@@ -101,27 +105,43 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]}>
-      <View style={styles.header}>
-        <Text style={styles.greeting}>
-          Let&apos;s plan your next{'\n'}adventures <Text style={styles.greetingMark}>!</Text>
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Your profile"
-          onPress={() => router.push('/(tabs)/profile')}
-          style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
-        >
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} contentFit="cover" transition={150} />
-          ) : (
-            <Text style={styles.avatarText}>{displayName ? initialsOf(displayName) : '?'}</Text>
-          )}
-        </Pressable>
-      </View>
+    <ScrollView contentContainerStyle={styles.content}>
+      <LinearGradient
+        colors={['#CFF1E9', '#E8F7F3', colors.surface]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={[styles.hero, { paddingTop: insets.top + spacing.lg }]}
+      >
+        <View pointerEvents="none" style={styles.heroBlobLarge} />
+        <View pointerEvents="none" style={styles.heroBlobSmall} />
 
-      <AskBar onPress={() => openAssistant()} />
+        <View style={styles.header}>
+          <View style={styles.greetingBlock}>
+            <Text style={styles.hello}>{greeting}{firstName ? `, ${firstName}` : ''} 👋</Text>
+            <Text style={styles.greeting}>
+              Let&apos;s plan your next{'\n'}adventures <Text style={styles.greetingMark}>!</Text>
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Your profile"
+            onPress={() => router.push('/(tabs)/profile')}
+            style={({ pressed }) => [styles.avatarRing, pressed && styles.pressed]}
+          >
+            <View style={styles.avatar}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} contentFit="cover" transition={150} />
+              ) : (
+                <Text style={styles.avatarText}>{displayName ? initialsOf(displayName) : '?'}</Text>
+              )}
+            </View>
+          </Pressable>
+        </View>
 
+        <AskBar onPress={() => openAssistant()} />
+      </LinearGradient>
+
+      <View style={styles.body}>
       <View style={styles.tabsRow}>
         <Segmented
           options={[
@@ -200,6 +220,7 @@ export default function HomeScreen() {
           <TravelTips onAsk={() => openAssistant()} />
         </View>
       ) : null}
+      </View>
     </ScrollView>
   );
 
@@ -249,14 +270,54 @@ function rank(trip: { startDate: string; endDate: string }): number {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.lg, paddingBottom: layout.tabBarClearance },
+  content: { paddingBottom: layout.tabBarClearance },
+  hero: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+    borderBottomLeftRadius: radii.xxl,
+    borderBottomRightRadius: radii.xxl,
+    overflow: 'hidden',
+    marginBottom: spacing.lg,
+  },
+  heroBlobLarge: {
+    position: 'absolute',
+    top: -60,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(14,138,125,0.12)',
+  },
+  heroBlobSmall: {
+    position: 'absolute',
+    bottom: 20,
+    left: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(224,122,63,0.12)',
+  },
+  body: { paddingHorizontal: spacing.lg },
+  greetingBlock: { flex: 1 },
+  hello: { fontSize: fontSize.sm, fontWeight: '600', color: colors.brandDark, marginBottom: 2 },
+  avatarRing: {
+    padding: 3,
+    borderRadius: radii.pill,
+    backgroundColor: colors.background,
+    shadowColor: '#0B5F58',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
+  },
   header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.lg },
   greeting: {
     flex: 1,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.text,
     lineHeight: 34,
+    letterSpacing: -0.3,
   },
   greetingMark: { color: colors.brand },
   avatar: {
@@ -296,12 +357,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    minHeight: 52,
-    borderRadius: radii.lg,
-    backgroundColor: colors.background,
+    minHeight: 54,
+    borderRadius: radii.pill,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.brand,
+    backgroundColor: colors.brandSoft,
     marginTop: spacing.xs,
   },
-  createLabel: { fontSize: fontSize.sm, fontWeight: '700', color: colors.brandDark },
+  createLabel: { fontSize: fontSize.sm, fontWeight: '800', color: colors.brandDark },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -312,7 +376,8 @@ const styles = StyleSheet.create({
   sectionTitleFlush: { marginTop: 0, marginBottom: 0 },
   sectionTitle: {
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: -0.2,
     color: colors.text,
     marginTop: spacing.xl,
     marginBottom: spacing.md,

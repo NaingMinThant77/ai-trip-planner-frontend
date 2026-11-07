@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fontSize, gradients, radii, spacing } from '../../theme';
+import { colors, fontSize, radii, spacing } from '../../theme';
 
 /**
  * The entry point to the assistant. Deliberately a button styled like an input rather than a
@@ -17,11 +17,10 @@ export function AskBar({ onPress }: { onPress: () => void }) {
         onPress={onPress}
         style={({ pressed }) => [styles.bar, pressed && styles.pressed]}
       >
-        <LinearGradient
-          colors={gradients.brand}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <Image
+          source={require('../../../assets/trip_planner/ai_trip_planner_icon.png')}
           style={styles.orb}
+          contentFit="cover"
         />
         <Text style={styles.placeholder}>Ask me here…</Text>
         <Ionicons name="arrow-forward-circle" size={26} color={colors.brand} />

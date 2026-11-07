@@ -58,8 +58,14 @@ export function useRemoveAvatar() {
 }
 
 export function useChangePassword() {
+  const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (input: { currentPassword: string; newPassword: string }) =>
+    mutationFn: (input: { currentPassword?: string; newPassword: string }) =>
       authApi.changePassword(input),
+    // Flips the Account screen from "Set a password" to "Change password".
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: exploreKeys.profile });
+    },
   });
 }
