@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -55,6 +56,8 @@ export default function HomeScreen() {
   const attention = tripNeedingAttention(allTrips);
   const attentionStep = attention ? nextPlanningStep(attention) : null;
   const displayName = user?.name ?? profile.data?.name ?? '';
+  // The profile query is the fresher source: it updates right after a photo upload.
+  const avatarUrl = profile.data?.avatarUrl ?? user?.avatarUrl ?? null;
 
   const quickTools: QuickTool[] = [
     {
@@ -109,7 +112,11 @@ export default function HomeScreen() {
           onPress={() => router.push('/(tabs)/profile')}
           style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
         >
-          <Text style={styles.avatarText}>{displayName ? initialsOf(displayName) : '?'}</Text>
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} contentFit="cover" transition={150} />
+          ) : (
+            <Text style={styles.avatarText}>{displayName ? initialsOf(displayName) : '?'}</Text>
+          )}
         </Pressable>
       </View>
 
@@ -259,7 +266,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  avatarImage: { width: '100%', height: '100%' },
   avatarText: { fontSize: fontSize.sm, fontWeight: '700', color: colors.brandDark },
   pressed: { opacity: 0.75 },
   tabsRow: {

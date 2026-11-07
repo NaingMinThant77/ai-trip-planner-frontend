@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, fontSize, radii, spacing } from '../../theme';
 
@@ -10,11 +10,14 @@ type Props = {
 export function BrandHeader({ tone = 'dark' }: Props) {
   return (
     <View style={styles.row}>
-      <View style={styles.badge}>
-        <Ionicons name="airplane" size={16} color={colors.brand} />
-      </View>
+      <Image
+        source={require('../../../assets/trip_planner/ai_trip_planner_icon.png')}
+        style={styles.icon}
+        contentFit="cover"
+        accessibilityLabel="AI Trip Planner"
+      />
       <Text style={[styles.wordmark, tone === 'light' && styles.wordmarkLight]}>
-        AI Trip Planner
+        Wayfarer: AI Trip Planner
       </Text>
     </View>
   );
@@ -22,14 +25,7 @@ export function BrandHeader({ tone = 'dark' }: Props) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  badge: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.pill,
-    backgroundColor: colors.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  icon: { width: 32, height: 32, borderRadius: radii.pill },
   wordmark: {
     fontSize: fontSize.md,
     fontWeight: '700',
