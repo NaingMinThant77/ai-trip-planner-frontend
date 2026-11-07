@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as authApi from '../api/auth';
-import { setAuthToken } from '../api/client';
+import { setAuthToken, setSessionExpiredHandler } from '../api/client';
 import { connectSocket, disconnectSocket } from '../lib/socket';
 import { User } from '../types/api';
 
@@ -101,6 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (!cancelled) {
             setUser(me);
             connectSocket(token);
+            // The tabs mount (and fire their queries) before this restore finishes, so those
+            // first requests went out without a token and cached "Unauthorized". Refetch them.
+            void queryClient.invalidateQueries();
           }
         } catch {
           setAuthToken(null);
@@ -115,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [queryClient]);
 
   const applySession = useCallback(
     async (accessToken: string, nextUser: User): Promise<void> => {
@@ -198,6 +201,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Otherwise the next person to sign in briefly sees the previous user's trips.
     queryClient.clear();
   }, [queryClient]);
+
+  // A rejected token anywhere in the app ends the session and lands on sign-in.
+  useEffect(() => {
+    setSessionExpiredHandler(() => void signOut());
+    return () => setSessionExpiredHandler(null);
+  }, [signOut]);
 
   const completeOnboarding = useCallback(async (): Promise<void> => {
     setHasOnboarded(true);

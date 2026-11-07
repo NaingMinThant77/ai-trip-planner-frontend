@@ -48,6 +48,16 @@ export function setAuthToken(token: string | null): void {
   authToken = token;
 }
 
+let onSessionExpired: (() => void) | null = null;
+
+/** The auth context registers what to do when the server rejects our token mid-session. */
+export function setSessionExpiredHandler(handler: (() => void) | null): void {
+  onSessionExpired = handler;
+}
+
+/** 401s on these are a wrong password, not an expired session. */
+const CREDENTIAL_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/password'];
+
 /** Read by the chat socket connection, which authenticates its handshake the same way. */
 export function getAuthToken(): string | null {
   return authToken;
@@ -106,6 +116,16 @@ api.interceptors.response.use(
     }
 
     const status = axiosError.response.status;
+    const url = axiosError.config?.url ?? '';
+    if (
+      status === 401 &&
+      authToken &&
+      !CREDENTIAL_ENDPOINTS.some((endpoint) => url.includes(endpoint))
+    ) {
+      // The token we sent was rejected (expired or revoked): drop the session so the
+      // navigation gate returns the user to the sign-in screen.
+      onSessionExpired?.();
+    }
     throw new ApiError(
       readMessage(axiosError.response.data) ?? 'Something went wrong.',
       status,
