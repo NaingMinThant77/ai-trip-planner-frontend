@@ -273,11 +273,11 @@ const styles = StyleSheet.create({
   content: { paddingBottom: layout.tabBarClearance },
   hero: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.md,
     borderBottomLeftRadius: radii.xxl,
     borderBottomRightRadius: radii.xxl,
     overflow: 'hidden',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
   },
   heroBlobLarge: {
     position: 'absolute',
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginTop: spacing.xl,
+    marginTop: spacing.xs,
     marginBottom: spacing.lg,
   },
   allPlans: { fontSize: fontSize.xs, fontWeight: '700', color: colors.brandDark },

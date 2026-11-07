@@ -221,7 +221,7 @@ function HeroText({ data }: { data: TripDetail }) {
         {data.travelers === 1 ? 'traveller' : 'travellers'}
       </HeroMeta>
       {data.notes ? (
-        <Text style={styles.notes} numberOfLines={2}>
+        <Text style={styles.notes}>
           {data.notes}
         </Text>
       ) : null}
@@ -261,7 +261,8 @@ const styles = StyleSheet.create({
     minHeight: 300,
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
+    // Extra room so the text clears the tab bar that floats over the banner's bottom edge.
+    paddingBottom: spacing.xxl + spacing.xl,
   },
   heroActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heroActionsRight: { flexDirection: 'row', gap: spacing.sm },
