@@ -33,9 +33,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#EAF4FF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 220
+          "backgroundColor": "#E8F7F3",
+          "image": "./assets/trip_planner/ai_trip_planner_icon.png",
+          "imageWidth": 200,
+          "dark": {
+            "backgroundColor": "#0B2B28",
+            "image": "./assets/trip_planner/ai_trip_planner_icon.png"
+          }
         }
       ],
       "expo-secure-store",
