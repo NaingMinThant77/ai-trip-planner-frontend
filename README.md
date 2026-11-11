@@ -4,7 +4,7 @@ Mobile app (iOS / Android / web) for planning trips with an AI assistant, built 
 
 ## Download
 
-**[Download the Android APK](https://expo.dev/accounts/naingminthant/projects/ai-trip-planner/builds/cd0e70dc-10fb-42d0-8aa9-cbad1aac9614)** — open the link on an Android device (or scan its QR code), install the `.apk`, and allow installs from unknown sources if prompted.
+**[Download the Android APK](https://expo.dev/accounts/naingminthant/projects/ai-trip-planner/builds/cd0e70dc-10fb-42d0-8aa9-cbad1aac9614)** — open the link on an Android device , install the `.apk`, and allow installs from unknown sources if prompted.
 
 ## Features
 
