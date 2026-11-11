@@ -35,7 +35,7 @@
         {
           "backgroundColor": "#E8F7F3",
           "image": "./assets/trip_planner/splash-light.png",
-          "imageWidth": 300,
+          "imageWidth": 200,
           "dark": {
             "backgroundColor": "#0B2B28",
             "image": "./assets/trip_planner/splash-dark.png"
