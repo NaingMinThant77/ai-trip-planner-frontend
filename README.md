@@ -1,6 +1,6 @@
 # Wayfarer — Frontend (AI Trip Planner)
 
-Mobile app (iOS / Android / web) for planning trips with an AI assistant, built with Expo and React Native.
+Mobile app for planning trips with an AI assistant, built with Expo and React Native.
 
 ## Download
 
