@@ -2,6 +2,10 @@
 
 Mobile app (iOS / Android / web) for planning trips with an AI assistant, built with Expo and React Native.
 
+## Download
+
+**[Download the Android APK](https://expo.dev/accounts/naingminthant/projects/ai-trip-planner/builds/cd0e70dc-10fb-42d0-8aa9-cbad1aac9614)** — open the link on an Android device (or scan its QR code), install the `.apk`, and allow installs from unknown sources if prompted.
+
 ## Features
 
 - **AI assistant** — chat with an AI agent to plan a trip, then save its suggestion as a trip in one tap
@@ -98,14 +102,6 @@ Screens from the app running on Android.
     <td align="center"><img src="docs/app_images/17-AccountDetail.jpg" width="200" alt="Account detail"><br><sub>Account detail</sub></td>
   </tr>
 </table>
-
-## Design mockups
-
-Original design mockups for the main flows:
-
-| AI Agent chat | Home & Add trip | Family trip sharing |
-| --- | --- | --- |
-| ![AI Agent chat](docs/screenshots/ai-agent-chat.png) | ![Home and add trip](docs/screenshots/home-and-add-trip.png) | ![Family trip sharing](docs/screenshots/family-trip-share.png) |
 
 ## Tech stack
 
